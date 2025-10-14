@@ -691,14 +691,19 @@ function updateEngineUI() {
   if (currentEngine === "bing") {
     engineNameEl.textContent = "Bing";
     engineIconEl.textContent = "🔎";
-  } else {
+  } else if (currentEngine === "baidu"){
+    engineNameEl.textContent = "Baidu";
+    engineIconEl.textContent = "🔍";
+  }else {
     engineNameEl.textContent = "Google";
     engineIconEl.textContent = "🔍";
   }
 }
 
 function toggleEngine() {
-  currentEngine = currentEngine === "google" ? "bing" : "google";
+  if (currentEngine === "google") currentEngine = "bing";
+  else if (currentEngine === "bing") currentEngine = "baidu";
+  else currentEngine = "google";
   saveEngine();
   updateEngineUI();
 }
@@ -711,6 +716,8 @@ function performSearch(query) {
   
   if (currentEngine === "bing") {
     searchUrl = `https://www.bing.com/search?q=${encodedQuery}`;
+  } else if (currentEngine === "baidu") {
+    searchUrl = `https://www.baidu.com/s?wd=${encodedQuery}`;
   } else {
     searchUrl = `https://www.google.com/search?q=${encodedQuery}`;
   }
@@ -901,6 +908,18 @@ document.addEventListener("DOMContentLoaded", async () => {
   engineToggle.addEventListener("click", () => {
     toggleEngine();
   });
+
+  (function() {
+    const searchInputEl = document.getElementById("searchInput");
+    if (!searchInputEl) return;
+    searchInputEl.addEventListener("keydown", (e) => {
+      if (e.key === "Tab") {
+        e.preventDefault();
+        toggleEngine();
+        setTimeout(() => searchInputEl.focus(), 0);
+      }
+    });
+  })();
 
   // Focus search input on "/" key
   document.addEventListener("keydown", e => {
