@@ -124,5 +124,20 @@
   },
   "bookmarkSyncLabel": {
     "message": "ブックマークを同期（最大）"
+  },
+  "backgroundUrlLabel": {
+    "message": "背景画像（URL）"
+  },
+  "backgroundLocalLabel": {
+    "message": "背景画像（ローカル）"
+  },
+  "backgroundPreviewLabel": {
+    "message": "プレビュー"
+  },
+  "backgroundChooseFile": {
+    "message": "ファイルを選択"
+  },
+  "backgroundClear": {
+    "message": "クリア"
   }
 }

@@ -110,6 +110,22 @@
         <span data-i18n="bookmarkSyncLabel">Sync bookmarks (max)</span>
         <input id="bookmarkSyncCount" type="number" min="0" max="50" step="1" value="5" />
       </label>
+
+      <!-- New: custom background controls -->
+      <label>
+        <span data-i18n="backgroundUrlLabel">Background Image (URL)</span>
+        <input id="backgroundUrl" type="url" placeholder="https://example.com/bg.jpg" />
+      </label>
+      <label>
+        <span data-i18n="backgroundLocalLabel">Background Image (Local)</span>
+      </label>
+      <div class="file-picker">
+        <button type="button" id="backgroundFileBtn" class="btn ghost file-btn" data-i18n="backgroundChooseFile">Choose File</button>
+        <span id="backgroundFileName" class="file-name"></span>
+        <button type="button" id="backgroundClear" class="btn ghost file-btn" data-i18n="backgroundClear">Clear</button>
+      </div>
+      <input type="file" id="backgroundFile" accept="image/*" style="display:none" />
+      </label>
       <div class="settings-actions">
         <button type="button" id="exportBtn" class="btn ghost" data-i18n="exportSettings">Export Settings</button>
         <button type="button" id="importBtn" class="btn ghost" data-i18n="importSettings">Import Settings</button>

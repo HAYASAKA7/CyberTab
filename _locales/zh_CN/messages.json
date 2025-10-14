@@ -124,5 +124,20 @@
   },
   "bookmarkSyncLabel": {
     "message": "同步收藏夹（上限）"
+  },
+  "backgroundUrlLabel": {
+    "message": "背景图片（URL）"
+  },
+  "backgroundLocalLabel": {
+    "message": "背景图片（本地）"
+  },
+  "backgroundPreviewLabel": {
+    "message": "预览"
+  },
+  "backgroundChooseFile": {
+    "message": "选择文件"
+  },
+  "backgroundClear": {
+    "message": "清除"
   }
 }

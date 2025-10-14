@@ -124,5 +124,20 @@
   },
   "bookmarkSyncLabel": {
     "message": "Sync bookmarks (max)"
+  },
+  "backgroundUrlLabel": {
+    "message": "Background Image (URL)"
+  },
+  "backgroundLocalLabel": {
+    "message": "Background Image (Local)"
+  },
+  "backgroundPreviewLabel": {
+    "message": "Preview"
+  },
+  "backgroundChooseFile": {
+    "message": "Choose File"
+  },
+  "backgroundClear": {
+    "message": "Clear"
   }
 }

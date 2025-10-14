@@ -13,17 +13,19 @@ const GRID = 140; // snap grid (tile width + gap)
 const SIDE_MARGIN = 32 * 8; // left/right margin
 const TOP_OFFSET = 32; // top offset
 const TILE_SIZE = 120; // tile width/height
-const STORAGE_KEY = "cyber_we_tab_items";
-const ENGINE_KEY = "cyber_we_tab_engine";
-const LANGUAGE_KEY = "cyber_we_tab_language";
-const AUTO_ALIGN_KEY = "cyber_we_tab_auto_align";
-const BOOKMARK_SYNC_COUNT_KEY = "cyber_we_tab_bookmark_sync_count";
+const STORAGE_KEY = "cyber_tab_items";
+const ENGINE_KEY = "cyber_tab_engine";
+const LANGUAGE_KEY = "cyber_tab_language";
+const AUTO_ALIGN_KEY = "cyber_tab_auto_align";
+const BOOKMARK_SYNC_COUNT_KEY = "cyber_tab_bookmark_sync_count";
+const BACKGROUND_KEY = "cyber_tab_background_image";
 
 let items = []; // saved tiles: {id,name,url,col,row,icon,bookmarkId?}
 let currentEngine = "google"; // "google" or "bing"
 let currentLanguage = "auto"; // "auto", "en", "zh_CN", "jp"
 let autoAlign = true; // whether to auto-align tiles
 let bookmarkSyncCount = 5; // how many bookmarks to import/sync from bookmarks bar
+let backgroundImage = ""; // background image data URL
 let contextMenu = null; // reference to context menu element
 
 function uid(){
@@ -53,18 +55,24 @@ function saveBookmarkSyncCount() {
   chrome.storage.sync.set({ [BOOKMARK_SYNC_COUNT_KEY]: bookmarkSyncCount });
 }
 
+function saveBackground() {
+  chrome.storage.sync.set({ [BACKGROUND_KEY]: backgroundImage });
+}
+
 function load() {
   return new Promise(async resolve => {
-    chrome.storage.sync.get([STORAGE_KEY, ENGINE_KEY, LANGUAGE_KEY, AUTO_ALIGN_KEY, BOOKMARK_SYNC_COUNT_KEY], async res => {
+    chrome.storage.sync.get([STORAGE_KEY, ENGINE_KEY, LANGUAGE_KEY, AUTO_ALIGN_KEY, BOOKMARK_SYNC_COUNT_KEY, BACKGROUND_KEY], async res => {
       items = res[STORAGE_KEY] || defaultItems();
       currentEngine = res[ENGINE_KEY] || "google";
       currentLanguage = res[LANGUAGE_KEY] || "auto";
       autoAlign = (typeof res[AUTO_ALIGN_KEY] !== "undefined") ? res[AUTO_ALIGN_KEY] : true;
       bookmarkSyncCount = (typeof res[BOOKMARK_SYNC_COUNT_KEY] !== "undefined") ? res[BOOKMARK_SYNC_COUNT_KEY] : 5;
+      backgroundImage = res[BACKGROUND_KEY] || "";
 
       await loadBookmarks(bookmarkSyncCount); // Load bookmarks after loading stored items
       setupBookmarkSyncListeners(); // start syncing browser bookmarks -> extension items
       renderAll();
+      applyBackground(backgroundImage);
       updateEngineUI();
       await localizePage(); // Localize after loading settings
       resolve();
@@ -73,6 +81,18 @@ function load() {
       fetchMissingFavicons();
     });
   });
+}
+
+function applyBackground(src) {
+  if (!src) {
+    document.documentElement.style.setProperty('--custom-bg-image', 'none');
+    backgroundImage = "";
+    return;
+  }
+  // Use CSS url(...) and ensure proper quoting for data URLs
+  const escaped = src.replace(/"/g, '\\"');
+  document.documentElement.style.setProperty('--custom-bg-image', `url("${escaped}") center/cover no-repeat`);
+  backgroundImage = src;
 }
 
 function defaultItems(){
@@ -801,6 +821,46 @@ document.addEventListener("DOMContentLoaded", async () => {
     bookmarkSyncInput.value = bookmarkSyncCount;
   }
 
+  // Background UI wiring
+  const backgroundUrlInput = document.getElementById("backgroundUrl");
+  const backgroundFileBtn = document.getElementById("backgroundFileBtn");
+  const backgroundFileInput = document.getElementById("backgroundFile");
+  const backgroundFileName = document.getElementById("backgroundFileName");
+  const backgroundClear = document.getElementById("backgroundClear");
+
+  // pendingBackground holds the staged value (data URL or URL string)
+  let pendingBackground = backgroundImage || "";
+
+  // initialize preview and inputs
+  if (backgroundUrlInput) backgroundUrlInput.value = (pendingBackground && !pendingBackground.startsWith('data:')) ? pendingBackground : "";
+
+  if (backgroundFileBtn && backgroundFileInput) {
+    backgroundFileBtn.addEventListener("click", () => backgroundFileInput.click());
+    backgroundFileInput.addEventListener("change", async (e) => {
+      const f = e.target.files[0];
+      if (!f) return;
+      backgroundFileName.textContent = f.name;
+      const data = await readFileAsDataURL(f);
+      pendingBackground = data;
+    });
+  }
+
+  if (backgroundUrlInput) {
+    backgroundUrlInput.addEventListener("input", (e) => {
+      const v = e.target.value.trim();
+      pendingBackground = v || "";
+    });
+  }
+
+  if (backgroundClear) {
+    backgroundClear.addEventListener("click", () => {
+      pendingBackground = "";
+      if (backgroundUrlInput) backgroundUrlInput.value = "";
+      if (backgroundFileInput) { backgroundFileInput.value = ""; backgroundFileName.textContent = ""; }
+      if (backgroundFileName) backgroundFileName.textContent = "";
+    });
+  }
+
   const addBtn = document.getElementById("addBtn");
   const modal = document.getElementById("modal");
   const favForm = document.getElementById("favForm");
@@ -948,6 +1008,12 @@ document.addEventListener("DOMContentLoaded", async () => {
       await loadBookmarks(bookmarkSyncCount);
       renderAll();
       autoAlignTiles();
+    }
+
+    if (typeof pendingBackground !== "undefined") {
+      backgroundImage = pendingBackground || "";
+      saveBackground();
+      applyBackground(backgroundImage);
     }
   });
 
