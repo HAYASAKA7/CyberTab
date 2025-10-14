@@ -10,14 +10,18 @@
 // - export/import settings
 
 const GRID = 140; // snap grid (tile width + gap)
+const SIDE_MARGIN = 32 * 8; // left/right margin
+const TOP_OFFSET = 32; // top offset
 const TILE_SIZE = 120; // tile width/height
 const STORAGE_KEY = "cyber_we_tab_items";
 const ENGINE_KEY = "cyber_we_tab_engine";
 const LANGUAGE_KEY = "cyber_we_tab_language";
+const AUTO_ALIGN_KEY = "cyber_we_tab_auto_align";
 
 let items = []; // saved tiles: {id,name,url,col,row,icon}
 let currentEngine = "google"; // "google" or "bing"
 let currentLanguage = "auto"; // "auto", "en", "zh_CN", "jp"
+let autoAlign = true; // whether to auto-align tiles
 let contextMenu = null; // reference to context menu element
 
 function uid(){
@@ -36,12 +40,17 @@ function saveLanguage() {
   chrome.storage.sync.set({ [LANGUAGE_KEY]: currentLanguage });
 }
 
+function saveAutoAlign() {
+  chrome.storage.sync.set({ [AUTO_ALIGN_KEY]: autoAlign });
+}
+
 function load() {
   return new Promise(async resolve => {
-    chrome.storage.sync.get([STORAGE_KEY, ENGINE_KEY, LANGUAGE_KEY], async res => {
+    chrome.storage.sync.get([STORAGE_KEY, ENGINE_KEY, LANGUAGE_KEY, AUTO_ALIGN_KEY], async res => {
       items = res[STORAGE_KEY] || defaultItems();
       currentEngine = res[ENGINE_KEY] || "google";
       currentLanguage = res[LANGUAGE_KEY] || "auto";
+      autoAlign = (typeof res[AUTO_ALIGN_KEY] !== "undefined") ? res[AUTO_ALIGN_KEY] : true;
       await loadBookmarks(); // Load bookmarks after loading stored items
       renderAll();
       updateEngineUI();
@@ -62,20 +71,21 @@ function renderAll(){
   const board = document.getElementById("board");
   board.innerHTML = "";
   items.forEach(it => board.appendChild(makeTile(it)));
+  if (autoAlign) autoAlignTiles();
 }
 
 // Calculate grid position from col/row
 function getPosition(col, row) {
   return {
-    left: col * GRID + 32,
-    top: row * GRID + 32
+    left: col * GRID + SIDE_MARGIN,
+    top: row * GRID + TOP_OFFSET
   };
 }
 
 // Calculate col/row from pixel position
 function getGridPosition(left, top) {
-  const col = Math.round((left - 32) / GRID);
-  const row = Math.round((top - 32) / GRID);
+  const col = Math.round((left - SIDE_MARGIN) / GRID);
+  const row = Math.round((top - TOP_OFFSET) / GRID);
   return {
     col: Math.max(0, col),
     row: Math.max(0, row)
@@ -112,7 +122,46 @@ function findNearestFreePosition(targetCol, targetRow, excludeId) {
   return { col: targetCol, row: targetRow };
 }
 
-function makeTile(it){
+// Fetch favicon URL (return URL string if found, null otherwise)
+async function fetchFavicon(url) {
+  try {
+    const urlObj = new URL(url);
+    const baseUrl = `${urlObj.protocol}//${urlObj.host}`;
+    const faviconUrls = [
+      `${baseUrl}/favicon.ico`,
+      `${baseUrl}/apple-touch-icon.png`,
+      `${baseUrl}/favicon.png`
+    ];
+    
+    for (const faviconUrl of faviconUrls) {
+      // Use a temporary image to test if the URL loads (avoids CORS issues with fetch)
+      const img = new Image();
+      img.src = faviconUrl;
+      await new Promise((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => reject();
+        // Timeout after 2 seconds
+        setTimeout(() => reject(), 2000);
+      });
+      return faviconUrl; // If loaded successfully, return the URL
+    }
+    return null; // No favicon found
+  } catch (e) {
+    return null;
+  }
+}
+
+// Read file as data URL
+function readFileAsDataURL(file) {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.readAsDataURL(file);
+  });
+}
+
+// Update makeTile to handle icons with fallback for failed favicon loads
+function makeTile(it) {
   const el = document.createElement("div");
   el.className = "tile";
   const pos = getPosition(it.col, it.row);
@@ -123,11 +172,29 @@ function makeTile(it){
   const iconText = generateIconText(it.url, it.name, it.icon);
   const bg = colorFromString(it.url || it.name);
 
-  el.innerHTML = `<div class="icon">${escapeHtml(iconText)}</div>
+  el.innerHTML = `<div class="icon">${iconText}</div>
                   <div class="title">${escapeHtml(it.name)}</div>`;
 
   const iconEl = el.querySelector(".icon");
-  iconEl.style.background = bg;
+  if (it.icon && (it.icon.startsWith('http') || it.icon.startsWith('data:'))) {
+    // Use provided icon (favicon URL or local data URL)
+    const img = document.createElement('img');
+    img.src = it.icon;
+    img.style.width = '100%';
+    img.style.height = '100%';
+    img.style.borderRadius = '14px';
+    img.style.objectFit = 'cover';
+    img.onerror = () => {
+      // Fallback to generated icon if image fails to load
+      iconEl.innerHTML = iconText;
+      iconEl.style.background = bg;
+    };
+    iconEl.innerHTML = '';
+    iconEl.appendChild(img);
+  } else {
+    // Use generated text
+    iconEl.style.background = bg;
+  }
 
   // Right-click context menu
   el.addEventListener("contextmenu", e => {
@@ -186,22 +253,93 @@ function makeTile(it){
     el.style.zIndex = "";
     
     if (isDragging) {
-      // snap to grid
+      // Calculate final position
       const gridPos = getGridPosition(el.offsetLeft, el.offsetTop);
-      const freePos = findNearestFreePosition(gridPos.col, gridPos.row, it.id);
-      const finalPos = getPosition(freePos.col, freePos.row);
+      const it = items.find(i => i.id === el.dataset.id);
       
+      if (autoAlign) {
+        // Insert logic: move the dragged tile to the target position and shift subsequent tiles
+        const maxCols = 11;
+        const targetIndex = gridPos.row * maxCols + gridPos.col;
+        
+        // Sort items by their current grid index
+        items.sort((a, b) => (a.row * maxCols + a.col) - (b.row * maxCols + b.col));
+        
+        // Remove the dragged item from its current position
+        const currentIndex = items.indexOf(it);
+        items.splice(currentIndex, 1);
+        
+        // Insert at the target index (or at the end if beyond)
+        const insertIndex = Math.min(targetIndex, items.length);
+        items.splice(insertIndex, 0, it);
+        
+        // Reassign compact positions
+        let col = 0;
+        let row = 0;
+        items.forEach(item => {
+          item.col = col;
+          item.row = row;
+          col++;
+          if (col >= maxCols) {
+            col = 0;
+            row++;
+          }
+        });
+      } else {
+        // Insert-with-shift behavior (like mobile app icon move):
+        // If dropping onto an occupied tile, insert the dragged item at that tile's index
+        // and shift that tile and subsequent tiles one position forward.
+        const targetTile = items.find(t => t.col === gridPos.col && t.row === gridPos.row && t.id !== el.dataset.id);
+        if (targetTile) {
+          const maxCols = 11;
+          // Create a row-major sorted list
+          const sorted = items.slice().sort((a,b) => (a.row*maxCols + a.col) - (b.row*maxCols + b.col));
+
+          // Find index of target in sorted list
+          const targetIndex = sorted.findIndex(s => s.id === targetTile.id);
+          // Remove dragged item if present in sorted list
+          const draggedIndex = sorted.findIndex(s => s.id === it.id);
+          if (draggedIndex !== -1) sorted.splice(draggedIndex, 1);
+          // Insert dragged item at targetIndex
+          const insertIndex = Math.min(Math.max(0, targetIndex), sorted.length);
+          sorted.splice(insertIndex, 0, it);
+
+          // Reassign compact positions for the whole list and update DOM immediately
+          let col = 0, row = 0;
+          for (const s of sorted) {
+            s.col = col;
+            s.row = row;
+            const elTile = document.querySelector(`[data-id="${s.id}"]`);
+            if (elTile) {
+              const pos = getPosition(s.col, s.row);
+              elTile.style.transition = ""; // immediate move (CSS handles transitions)
+              elTile.style.left = pos.left + "px";
+              elTile.style.top = pos.top + "px";
+            }
+            col++;
+            if (col >= maxCols) { col = 0; row++; }
+          }
+
+          // Replace items array with the newly ordered list
+          items = sorted;
+        } else {
+          // Drop on empty spot: find nearest free position as before
+          const freePos = findNearestFreePosition(gridPos.col, gridPos.row, it.id);
+          it.col = freePos.col;
+          it.row = freePos.row;
+        }
+      }
+      
+      const finalPos = getPosition(it.col, it.row);
       el.style.transition = ""; // restore transition
       el.style.left = finalPos.left + "px"; 
       el.style.top = finalPos.top + "px";
       
-      // update storage
-      const idx = items.findIndex(x => x.id === it.id);
-      if (idx !== -1) {
-        items[idx].col = freePos.col;
-        items[idx].row = freePos.row;
-        save();
-      }
+      // Update storage
+      save();
+      
+      // Auto-align if enabled (compact the layout)
+      autoAlignTiles();
     } else {
       el.style.transition = "";
     }
@@ -231,11 +369,82 @@ function showContextMenu(x, y, itemId) {
   const menu = document.createElement("div");
   menu.className = "context-menu";
   menu.innerHTML = `
-    <div class="context-item" data-action="delete">
+    <div class="context-item" data-action="edit-icon" data-i18n="editIconMenuItem">
+      <span class="context-icon">🎨</span>
+      <span></span>
+    </div>
+    <div class="context-item" data-action="delete" data-i18n="deleteMenuItem">
       <span class="context-icon">🗑️</span>
-      <span data-i18n="deleteMenuItem">Delete</span>
+      <span></span>
     </div>
   `;
+  
+  // Fill localized texts for dynamic menu items (use chrome.i18n so it follows language setting)
+  const editSpan = menu.querySelector('[data-i18n="editIconMenuItem"] span:last-child');
+  const deleteSpan = menu.querySelector('[data-i18n="deleteMenuItem"] span:last-child');
+  if (editSpan) editSpan.textContent = chrome.i18n.getMessage("editIconMenuItem") || "Edit Icon";
+  if (deleteSpan) deleteSpan.textContent = chrome.i18n.getMessage("deleteMenuItem") || "Delete";
+
+  document.body.appendChild(menu);
+  contextMenu = menu;
+  
+  // Position menu
+  const menuRect = menu.getBoundingClientRect();
+  const maxX = window.innerWidth - menuRect.width - 10;
+  const maxY = window.innerHeight - menuRect.height - 10;
+  
+  menu.style.left = Math.min(x, maxX) + "px";
+  menu.style.top = Math.min(y, maxY) + "px";
+  
+  // Show with animation
+  setTimeout(() => menu.classList.add("show"), 10);
+  
+  // Handle actions
+  menu.querySelector('[data-action="edit-icon"]').addEventListener("click", () => {
+    showEditIconModal(itemId);
+    hideContextMenu();
+  });
+  
+  menu.querySelector('[data-action="delete"]').addEventListener("click", () => {
+    items = items.filter(it => it.id !== itemId);
+    save();
+    renderAll();
+    autoAlignTiles(); // Auto-align after deletion
+    hideContextMenu();
+  });
+  
+  // Close on click outside
+  setTimeout(() => {
+    document.addEventListener("click", hideContextMenu, { once: true });
+  }, 10);
+}
+
+function showBoardContextMenu(x, y) {
+  hideContextMenu();
+  
+  const key = autoAlign ? "disableAutoAlign" : "enableAutoAlign";
+  const alignText = chrome.i18n.getMessage(key) || (autoAlign ? "Disable Auto Align" : "Enable Auto Align");
+  const alignIcon = autoAlign ? '🔒' : '🔓';
+  const addText = chrome.i18n.getMessage("addButton") || "＋ Add";
+  
+  const menu = document.createElement("div");
+  menu.className = "context-menu";
+  menu.innerHTML = `
+    <div class="context-item" data-action="add-favorite">
+      <span class="context-icon">＋</span>
+      <span></span>
+    </div>
+    <div class="context-item" data-action="toggle-auto-align">
+      <span class="context-icon">${alignIcon}</span>
+      <span></span>
+    </div>
+  `;
+  
+  // Localize the dynamic texts
+  const addSpan = menu.querySelector('[data-action="add-favorite"] span:last-child');
+  const textSpan = menu.querySelector('[data-action="toggle-auto-align"] span:last-child');
+  if (addSpan) addSpan.textContent = addText;
+  if (textSpan) textSpan.textContent = alignText;
   
   document.body.appendChild(menu);
   contextMenu = menu;
@@ -252,16 +461,33 @@ function showContextMenu(x, y, itemId) {
   setTimeout(() => menu.classList.add("show"), 10);
   
   // Handle actions
-  menu.querySelector('[data-action="delete"]').addEventListener("click", () => {
-    items = items.filter(it => it.id !== itemId);
-    save();
-    renderAll();
+  menu.querySelector('[data-action="add-favorite"]').addEventListener("click", () => {
+    const modal = document.getElementById("modal");
+    if (modal) {
+      modal.classList.remove("hidden");
+      modal.setAttribute("aria-hidden", "false");
+      const nameInput = document.getElementById("favName");
+      if (nameInput) nameInput.focus();
+    }
+    closeSidebar();
     hideContextMenu();
   });
   
-  // Close on click outside
+  menu.querySelector('[data-action="toggle-auto-align"]').addEventListener("click", () => {
+    autoAlign = !autoAlign;
+    saveAutoAlign();
+    autoAlignTiles(); // Apply immediately if enabled
+    hideContextMenu();
+  });
+  
+  // Close on click outside (prevents premature hiding)
   setTimeout(() => {
-    document.addEventListener("click", hideContextMenu, { once: true });
+    const closeHandler = (e) => {
+      if (!menu.contains(e.target)) {
+        hideContextMenu();
+      }
+    };
+    document.addEventListener("click", closeHandler, { once: true });
   }, 10);
 }
 
@@ -486,16 +712,23 @@ document.addEventListener("DOMContentLoaded", async () => {
   const exportBtn = document.getElementById("exportBtn");
   const importBtn = document.getElementById("importBtn");
   const importFile = document.getElementById("importFile");
-  const menuToggle = document.getElementById("menuToggle");
-  const sidebarOverlay = document.getElementById("sidebarOverlay");
-  const searchForm = document.getElementById("searchForm");
-  const searchInput = document.getElementById("searchInput");
-  const engineToggle = document.getElementById("engineToggle");
+  // Custom file-picker for Add Favorite modal (styled button + filename)
+  const favLocalIconInput = document.getElementById("favLocalIcon");
+  const favLocalIconBtn = document.getElementById("favLocalIconBtn");
+  const favLocalIconName = document.getElementById("favLocalIconName");
 
+  if (favLocalIconBtn && favLocalIconInput) {
+    favLocalIconBtn.addEventListener("click", () => favLocalIconInput.click());
+    favLocalIconInput.addEventListener("change", (e) => {
+      const f = e.target.files[0];
+      favLocalIconName.textContent = f ? f.name : "";
+    });
+  }
+  
   // Sidebar functionality
   menuToggle.addEventListener("click", toggleSidebar);
   sidebarOverlay.addEventListener("click", closeSidebar);
-
+  
   // Search functionality
   searchForm.addEventListener("submit", e => {
     e.preventDefault();
@@ -534,15 +767,26 @@ document.addEventListener("DOMContentLoaded", async () => {
     modal.classList.add("hidden");
     modal.setAttribute("aria-hidden", "true");
     favForm.reset();
+    if (typeof favLocalIconName !== "undefined") favLocalIconName.textContent = "";
   });
-
-  favForm.addEventListener("submit", e=>{
+  
+  favForm.addEventListener("submit", async e => {
     e.preventDefault();
     const name = document.getElementById("favName").value.trim();
     let url = document.getElementById("favURL").value.trim();
-    const icon = document.getElementById("favIcon").value.trim();
-    if (!/^https?:\/\//.test(url)) url = "https://"+url;
-    const id = uid();
+    // No manual emoji/char input anymore.
+    const localIconFile = document.getElementById("favLocalIcon").files[0];
+    
+    if (!/^https?:\/\//.test(url)) url = "https://" + url;
+    
+    // Determine icon: prefer local file, otherwise try to fetch favicon, fallback to generated
+    let finalIcon = "";
+    if (localIconFile) {
+      finalIcon = await readFileAsDataURL(localIconFile);
+    } else {
+      const favicon = await fetchFavicon(url);
+      if (favicon) finalIcon = favicon;
+    }
     
     // Find first available grid position
     let col = 0, row = 0;
@@ -554,19 +798,24 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     }
     
-    items.push({ id, name, url, col, row, icon });
+    items.push({ id: uid(), name, url, col, row, icon: finalIcon });
     save();
     renderAll();
+    autoAlignTiles(); // Auto-align after adding
     modal.classList.add("hidden");
     modal.setAttribute("aria-hidden", "true");
     favForm.reset();
+    if (typeof favLocalIconName !== "undefined") favLocalIconName.textContent = "";
   });
 
-  resetBtn.addEventListener("click", ()=>{
+  resetBtn.addEventListener("click", async ()=>{
     const confirmMessage = chrome.i18n.getMessage("resetConfirm") || "Reset to defaults?";
     if (!confirm(confirmMessage)) return;
     items = defaultItems();
-    save(); renderAll();
+    await loadBookmarks(); // Add bookmarks after resetting to defaults
+    save();
+    renderAll();
+    autoAlignTiles(); // Auto-align after reset
     closeSidebar();
   });
 
@@ -605,8 +854,19 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Hide context menu when clicking anywhere
   document.addEventListener("contextmenu", (e) => {
+    // Ignore right-clicks that originate from tiles, the board (handled separately),
+    // or the context menu itself so the menu doesn't immediately hide after being shown.
+    if (e.target.closest(".context-menu")) return;
+    if (e.target.closest(".tile")) return;
+    if (e.target.closest("#board")) return;
+    hideContextMenu();
+  });
+  
+  // Right-click on board (empty space)
+  board.addEventListener("contextmenu", (e) => {
     if (!e.target.closest(".tile")) {
-      hideContextMenu();
+      e.preventDefault();
+      showBoardContextMenu(e.clientX, e.clientY);
     }
   });
 });
@@ -692,4 +952,98 @@ function importSettings(file) {
     }
   };
   reader.readAsText(file);
+}
+
+// Show Edit Icon modal
+function showEditIconModal(itemId) {
+  const modal = document.getElementById("editIconModal");
+  modal.classList.remove("hidden");
+  modal.setAttribute("aria-hidden", "false");
+  modal.dataset.itemId = itemId;
+  
+  const useLocalIconBtn = document.getElementById("useLocalIcon");
+  const editLocalIconInput = document.getElementById("editLocalIcon");
+  
+  useLocalIconBtn.onclick = () => editLocalIconInput.click();
+  editLocalIconInput.onchange = () => {
+    // Trigger apply when file selected
+    document.getElementById("editIconApply").click();
+  };
+}
+
+// Apply icon changes
+async function applyIconChange(itemId, iconType) {
+  const idx = items.findIndex(it => it.id === itemId);
+  if (idx === -1) return;
+  
+  const it = items[idx];
+  let newIcon = "";
+  
+  if (iconType === "default") {
+    newIcon = ""; // Use generated
+  } else if (iconType === "website") {
+    newIcon = await fetchFavicon(it.url) || "";
+    if (!newIcon) {
+      alert(chrome.i18n.getMessage("faviconFetchFailed") || "Failed to fetch website icon. Using default.");
+    }
+  } else if (iconType === "local") {
+    const file = document.getElementById("editLocalIcon").files[0];
+    if (file) {
+      newIcon = await readFileAsDataURL(file);
+    }
+  }
+  
+  items[idx].icon = newIcon;
+  save();
+  renderAll();
+}
+
+// Edit Icon modal handlers
+document.getElementById("useDefaultIcon").addEventListener("click", () => {
+  const itemId = document.getElementById("editIconModal").dataset.itemId;
+  applyIconChange(itemId, "default");
+  document.getElementById("editIconModal").classList.add("hidden");
+});
+
+document.getElementById("useWebsiteIcon").addEventListener("click", async () => {
+  const itemId = document.getElementById("editIconModal").dataset.itemId;
+  await applyIconChange(itemId, "website");
+  document.getElementById("editIconModal").classList.add("hidden");
+});
+
+document.getElementById("editIconApply").addEventListener("click", async () => {
+  const itemId = document.getElementById("editIconModal").dataset.itemId;
+  const file = document.getElementById("editLocalIcon").files[0];
+  if (file) {
+    await applyIconChange(itemId, "local");
+  }
+  document.getElementById("editIconModal").classList.add("hidden");
+});
+
+document.getElementById("editIconCancel").addEventListener("click", () => {
+  document.getElementById("editIconModal").classList.add("hidden");
+});
+
+function autoAlignTiles() {
+  if (!autoAlign) return;
+
+  const maxCols = 11;
+  items.sort((a, b) => (a.row * maxCols + a.col) - (b.row * maxCols + b.col));
+
+  let col = 0, row = 0;
+  for (const it of items) {
+    it.col = col;
+    it.row = row;
+    const el = document.querySelector(`[data-id="${it.id}"]`);
+    if (el) {
+      const pos = getPosition(it.col, it.row);
+      el.style.transition = "";
+      el.style.left = pos.left + "px";
+      el.style.top = pos.top + "px";
+    }
+    col++;
+    if (col >= maxCols) { col = 0; row++; }
+  }
+
+  save();
 }

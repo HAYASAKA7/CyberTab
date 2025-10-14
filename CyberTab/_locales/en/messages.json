@@ -3,7 +3,7 @@
     "message": "CYBERTAB"
   },
   "addButton": {
-    "message": "＋ Add"
+    "message": "Add"
   },
   "resetButton": {
     "message": "Reset"
@@ -91,5 +91,35 @@
   },
   "importConfirm": {
     "message": "Importing will overwrite your current settings. Continue?"
+  },
+  "editIconMenuItem": {
+    "message": "Edit Icon"
+  },
+  "editIconTitle": {
+    "message": "Edit Icon"
+  },
+  "useDefaultIcon": {
+    "message": "Use Default Icon"
+  },
+  "useWebsiteIcon": {
+    "message": "Use Website Icon"
+  },
+  "useLocalIcon": {
+    "message": "Use Local Icon"
+  },
+  "chooseLocalIcon": {
+    "message": "Choose Local Icon"
+  },
+  "applyIcon": {
+    "message": "Apply"
+  },
+  "faviconFetchFailed": {
+    "message": "Failed to fetch website icon. Using default."
+  },
+  "disableAutoAlign": {
+    "message": "Disable Auto Align"
+  },
+  "enableAutoAlign": {
+    "message": "Enable Auto Align"
   }
 }

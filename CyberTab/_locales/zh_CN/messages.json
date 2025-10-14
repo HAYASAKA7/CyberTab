@@ -3,7 +3,7 @@
     "message": "CYBERTAB"
   },
   "addButton": {
-    "message": "＋ 添加"
+    "message": "添加"
   },
   "resetButton": {
     "message": "重置"
@@ -91,5 +91,35 @@
   },
   "importConfirm": {
     "message": "导入将覆盖当前设置。继续吗？"
+  },
+  "editIconMenuItem": {
+    "message": "编辑图标"
+  },
+  "editIconTitle": {
+    "message": "编辑图标"
+  },
+  "useDefaultIcon": {
+    "message": "使用默认图标"
+  },
+  "useWebsiteIcon": {
+    "message": "使用网站图标"
+  },
+  "useLocalIcon": {
+    "message": "使用本地图标"
+  },
+  "chooseLocalIcon": {
+    "message": "选择本地图标"
+  },
+  "applyIcon": {
+    "message": "应用"
+  },
+  "faviconFetchFailed": {
+    "message": "获取网站图标失败。使用默认。"
+  },
+  "disableAutoAlign": {
+    "message": "禁用自动对齐"
+  },
+  "enableAutoAlign": {
+    "message": "启用自动对齐"
   }
 }

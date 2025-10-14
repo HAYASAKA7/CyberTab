@@ -589,6 +589,56 @@ input::placeholder{
   border-color:rgba(0,240,255,0.24);
 }
 
+/* New icon options styles */
+.icon-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.icon-option {
+  text-align: left;
+  justify-content: flex-start;
+}
+
+.edit-icon-card {
+  min-width: 380px;
+}
+
+/* File picker styling to match cyberpunk theme */
+.file-picker{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  margin-top:8px;
+}
+
+.file-name{
+  color:var(--muted);
+  font-size:13px;
+  max-width:220px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+/* Small variant of .btn to fit form layout */
+.file-btn{
+  padding:8px 12px;
+  font-size:13px;
+  border-radius:8px;
+  background:linear-gradient(90deg,var(--neon-cyan),var(--neon-pink));
+  color:#041218;
+  border:1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.6), 0 0 14px rgba(0,240,255,0.06) inset;
+}
+
+.file-btn:hover{
+  filter:brightness(1.06);
+  transform:translateY(-1px);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .bar{

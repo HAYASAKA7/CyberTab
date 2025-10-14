@@ -77,9 +77,13 @@
         <input id="favURL" required data-i18n-placeholder="urlPlaceholder" placeholder="https://example.com" />
       </label>
       <label>
-        <span data-i18n="iconLabel">Icon (optional emoji or char)</span>
-        <input id="favIcon" maxlength="2" data-i18n-placeholder="iconPlaceholder" placeholder="🎵" />
+        <span data-i18n="chooseLocalIcon">Choose Local Icon</span>
       </label>
+      <div class="file-picker">
+        <button type="button" id="favLocalIconBtn" class="btn ghost file-btn" data-i18n="chooseLocalIcon">Choose File</button>
+        <span id="favLocalIconName" class="file-name"></span>
+        <input type="file" id="favLocalIcon" accept="image/*" style="display:none" />
+      </div>
       <div class="row">
         <button type="button" id="cancel" class="btn ghost" data-i18n="cancelButton">Cancel</button>
         <button type="submit" class="btn neon" data-i18n="saveButton">Save</button>
@@ -108,6 +112,23 @@
       <div class="row">
         <button type="button" id="settingsCancel" class="btn ghost" data-i18n="cancelButton">Cancel</button>
         <button type="button" id="settingsApply" class="btn neon" data-i18n="applySettings">Apply</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Icon modal -->
+  <div id="editIconModal" class="modal hidden" role="dialog" aria-hidden="true">
+    <div class="card edit-icon-card">
+      <h3 data-i18n="editIconTitle">Edit Icon</h3>
+      <div class="icon-options">
+        <button type="button" id="useDefaultIcon" class="btn ghost icon-option" data-i18n="useDefaultIcon">Use Default Icon</button>
+        <button type="button" id="useWebsiteIcon" class="btn ghost icon-option" data-i18n="useWebsiteIcon">Use Website Icon</button>
+        <button type="button" id="useLocalIcon" class="btn ghost icon-option" data-i18n="useLocalIcon">Use Local Icon</button>
+        <input type="file" id="editLocalIcon" accept="image/*" style="display: none;" />
+      </div>
+      <div class="row">
+        <button type="button" id="editIconCancel" class="btn ghost" data-i18n="cancelButton">Cancel</button>
+        <button type="button" id="editIconApply" class="btn neon" data-i18n="applyIcon">Apply</button>
       </div>
     </div>
   </div>

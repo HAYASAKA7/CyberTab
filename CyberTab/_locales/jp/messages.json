@@ -3,7 +3,7 @@
     "message": "CYBERTAB"
   },
   "addButton": {
-    "message": "＋ 追加"
+    "message": "追加"
   },
   "resetButton": {
     "message": "リセット"
@@ -91,5 +91,35 @@
   },
   "importConfirm": {
     "message": "インポートすると現在の設定が上書きされます。続行しますか？"
+  },
+  "editIconMenuItem": {
+    "message": "アイコンを編集"
+  },
+  "editIconTitle": {
+    "message": "アイコンを編集"
+  },
+  "useDefaultIcon": {
+    "message": "デフォルトアイコンを使用"
+  },
+  "useWebsiteIcon": {
+    "message": "ウェブサイトアイコンを使用"
+  },
+  "useLocalIcon": {
+    "message": "ローカルアイコンを使用"
+  },
+  "chooseLocalIcon": {
+    "message": "ローカルアイコンを選択"
+  },
+  "applyIcon": {
+    "message": "適用"
+  },
+  "faviconFetchFailed": {
+    "message": "ウェブサイトアイコンの取得に失敗しました。デフォルトを使用します。"
+  },
+  "disableAutoAlign": {
+    "message": "自動整列を無効にする"
+  },
+  "enableAutoAlign": {
+    "message": "自動整列を有効にする"
   }
 }
