@@ -1,0 +1,95 @@
+{
+  "appName": {
+    "message": "CYBERTAB"
+  },
+  "addButton": {
+    "message": "＋ 追加"
+  },
+  "resetButton": {
+    "message": "リセット"
+  },
+  "searchPlaceholder": {
+    "message": "ウェブを検索..."
+  },
+  "addFavoriteTitle": {
+    "message": "お気に入りを追加"
+  },
+  "nameLabel": {
+    "message": "名前"
+  },
+  "namePlaceholder": {
+    "message": "サイト名を入力"
+  },
+  "urlLabel": {
+    "message": "URL"
+  },
+  "urlPlaceholder": {
+    "message": "https://example.com"
+  },
+  "iconLabel": {
+    "message": "アイコン（オプションの絵文字または文字）"
+  },
+  "iconPlaceholder": {
+    "message": "🎵"
+  },
+  "cancelButton": {
+    "message": "キャンセル"
+  },
+  "saveButton": {
+    "message": "保存"
+  },
+  "deleteMenuItem": {
+    "message": "削除"
+  },
+  "resetConfirm": {
+    "message": "デフォルトにリセットしますか？"
+  },
+  "switchEngineTitle": {
+    "message": "検索エンジンを切り替え"
+  },
+  "searchTitle": {
+    "message": "検索"
+  },
+  "settingsButton": {
+    "message": "設定"
+  },
+  "settingsTitle": {
+    "message": "設定"
+  },
+  "languageLabel": {
+    "message": "言語"
+  },
+  "languageAuto": {
+    "message": "自動（ブラウザ）"
+  },
+  "languageEnglish": {
+    "message": "English"
+  },
+  "languageChinese": {
+    "message": "中文"
+  },
+  "languageJapanese": {
+    "message": "日本語"
+  },
+  "applySettings": {
+    "message": "適用"
+  },
+  "exportSettings": {
+    "message": "設定をエクスポート"
+  },
+  "importSettings": {
+    "message": "設定をインポート"
+  },
+  "exportSuccess": {
+    "message": "設定のエクスポートが成功しました！"
+  },
+  "importSuccess": {
+    "message": "設定のインポートが成功しました！"
+  },
+  "importError": {
+    "message": "設定のインポートに失敗しました。ファイル形式を確認してください。"
+  },
+  "importConfirm": {
+    "message": "インポートすると現在の設定が上書きされます。続行しますか？"
+  }
+}
