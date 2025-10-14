@@ -693,10 +693,10 @@ function updateEngineUI() {
     engineIconEl.textContent = "🔎";
   } else if (currentEngine === "baidu"){
     engineNameEl.textContent = "Baidu";
-    engineIconEl.textContent = "🔍";
+    engineIconEl.textContent = "🔎";
   }else {
     engineNameEl.textContent = "Google";
-    engineIconEl.textContent = "🔍";
+    engineIconEl.textContent = "🔎";
   }
 }
 
