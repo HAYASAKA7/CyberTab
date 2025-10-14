@@ -104,6 +104,12 @@
           <option value="jp" data-i18n="languageJapanese">日本語</option>
         </select>
       </label>
+
+      <!-- New: bookmark sync count setting -->
+      <label>
+        <span data-i18n="bookmarkSyncLabel">Sync bookmarks (max)</span>
+        <input id="bookmarkSyncCount" type="number" min="0" max="50" step="1" value="5" />
+      </label>
       <div class="settings-actions">
         <button type="button" id="exportBtn" class="btn ghost" data-i18n="exportSettings">Export Settings</button>
         <button type="button" id="importBtn" class="btn ghost" data-i18n="importSettings">Import Settings</button>

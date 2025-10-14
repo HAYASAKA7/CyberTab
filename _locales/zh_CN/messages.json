@@ -121,5 +121,8 @@
   },
   "enableAutoAlign": {
     "message": "启用自动对齐"
+  },
+  "bookmarkSyncLabel": {
+    "message": "同步收藏夹（上限）"
   }
 }

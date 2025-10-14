@@ -121,5 +121,8 @@
   },
   "enableAutoAlign": {
     "message": "自動整列を有効にする"
+  },
+  "bookmarkSyncLabel": {
+    "message": "ブックマークを同期（最大）"
   }
 }

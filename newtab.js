@@ -17,15 +17,21 @@ const STORAGE_KEY = "cyber_we_tab_items";
 const ENGINE_KEY = "cyber_we_tab_engine";
 const LANGUAGE_KEY = "cyber_we_tab_language";
 const AUTO_ALIGN_KEY = "cyber_we_tab_auto_align";
+const BOOKMARK_SYNC_COUNT_KEY = "cyber_we_tab_bookmark_sync_count";
 
-let items = []; // saved tiles: {id,name,url,col,row,icon}
+let items = []; // saved tiles: {id,name,url,col,row,icon,bookmarkId?}
 let currentEngine = "google"; // "google" or "bing"
 let currentLanguage = "auto"; // "auto", "en", "zh_CN", "jp"
 let autoAlign = true; // whether to auto-align tiles
+let bookmarkSyncCount = 5; // how many bookmarks to import/sync from bookmarks bar
 let contextMenu = null; // reference to context menu element
 
 function uid(){
   return (crypto && crypto.randomUUID) ? crypto.randomUUID() : Math.random().toString(36).slice(2,9);
+}
+
+function extensionAsset(name) {
+  return chrome.runtime.getURL(`icons/${name}`);
 }
 
 function save() {
@@ -43,22 +49,27 @@ function saveLanguage() {
 function saveAutoAlign() {
   chrome.storage.sync.set({ [AUTO_ALIGN_KEY]: autoAlign });
 }
+function saveBookmarkSyncCount() {
+  chrome.storage.sync.set({ [BOOKMARK_SYNC_COUNT_KEY]: bookmarkSyncCount });
+}
 
 function load() {
   return new Promise(async resolve => {
-    chrome.storage.sync.get([STORAGE_KEY, ENGINE_KEY, LANGUAGE_KEY, AUTO_ALIGN_KEY], async res => {
+    chrome.storage.sync.get([STORAGE_KEY, ENGINE_KEY, LANGUAGE_KEY, AUTO_ALIGN_KEY, BOOKMARK_SYNC_COUNT_KEY], async res => {
       items = res[STORAGE_KEY] || defaultItems();
       currentEngine = res[ENGINE_KEY] || "google";
       currentLanguage = res[LANGUAGE_KEY] || "auto";
       autoAlign = (typeof res[AUTO_ALIGN_KEY] !== "undefined") ? res[AUTO_ALIGN_KEY] : true;
-      await loadBookmarks(); // Load bookmarks after loading stored items
+      bookmarkSyncCount = (typeof res[BOOKMARK_SYNC_COUNT_KEY] !== "undefined") ? res[BOOKMARK_SYNC_COUNT_KEY] : 5;
+
+      await loadBookmarks(bookmarkSyncCount); // Load bookmarks after loading stored items
+      setupBookmarkSyncListeners(); // start syncing browser bookmarks -> extension items
       renderAll();
       updateEngineUI();
       await localizePage(); // Localize after loading settings
       resolve();
 
       // Kick off background favicon fetch for items without icons
-      // (extracted to helper so reset flow can reuse it)
       fetchMissingFavicons();
     });
   });
@@ -133,40 +144,94 @@ async function fetchFavicon(url) {
     const baseUrl = `${urlObj.protocol}//${urlObj.host}`;
     const host = urlObj.host;
 
-    // 1) Prefer browser's own favicon proxy so result matches bookmarks/favorites
-    try {
-      const chromeFav = `chrome://favicon/128/${encodeURIComponent(url)}`;
-      await testImageLoad(chromeFav, 1500);
-      return chromeFav;
-    } catch (e) {
-      // continue to other candidates
+    // UA detection: prefer chrome://favicon only on Chrome desktop
+    const ua = navigator.userAgent || "";
+    const isEdge = ua.includes("Edg/");
+    const isOpera = ua.includes("OPR/");
+    const isChrome = ua.includes("Chrome") && !isEdge && !isOpera;
+
+    // 1) chrome://favicon only on real Chrome (closest to bookmarks)
+    if (isChrome) {
+      try {
+        const chromeFav = `chrome://favicon/128/${encodeURIComponent(url)}`;
+        await testImageLoad(chromeFav, 1200);
+        return chromeFav;
+      } catch (e) {
+        // fallthrough to other strategies
+      }
     }
 
-    // 2) Reliable third-party services
+    // 2) Reliable third-party services (fast, no CORS)
     const thirdParty = [
       `https://www.google.com/s2/favicons?domain=${host}&sz=128`,
       `https://icons.duckduckgo.com/ip3/${host}.ico`
     ];
-
-    for (const faviconUrl of thirdParty) {
+    for (const candidate of thirdParty) {
       try {
-        await testImageLoad(faviconUrl, 2000);
-        return faviconUrl;
+        await testImageLoad(candidate, 1500);
+        return candidate;
       } catch (e) { /* try next */ }
     }
 
-    // 3) Site-hosted candidates
+    // 3) Try standard site-hosted locations
     const siteCandidates = [
       `${baseUrl}/favicon.ico`,
       `${baseUrl}/apple-touch-icon.png`,
       `${baseUrl}/favicon.png`
     ];
-
-    for (const faviconUrl of siteCandidates) {
+    for (const candidate of siteCandidates) {
       try {
-        await testImageLoad(faviconUrl, 2500);
-        return faviconUrl;
+        await testImageLoad(candidate, 1800);
+        return candidate;
       } catch (e) { /* try next */ }
+    }
+
+    // 4) Best-effort: fetch page and parse link/manifest (may fail due to CORS)
+    try {
+      const resp = await fetch(baseUrl, { method: "GET", mode: "cors" });
+      if (resp.ok) {
+        const html = await resp.text();
+        const linkMatch = html.match(/<link[^>]+rel=["'](?:shortcut icon|icon|apple-touch-icon)["'][^>]*>/i);
+        if (linkMatch) {
+          const hrefMatch = linkMatch[0].match(/href=["']([^"']+)["']/i);
+          if (hrefMatch && hrefMatch[1]) {
+            const href = new URL(hrefMatch[1], baseUrl).href;
+            try {
+              await testImageLoad(href, 1800);
+              return href;
+            } catch (e) { /* ignore */ }
+          }
+        }
+        const manifestMatch = html.match(/<link[^>]+rel=["']manifest["'][^>]*>/i);
+        if (manifestMatch) {
+          const hrefMatch = manifestMatch[0].match(/href=["']([^"']+)["']/i);
+          if (hrefMatch && hrefMatch[1]) {
+            const manifestUrl = new URL(hrefMatch[1], baseUrl).href;
+            try {
+              const mresp = await fetch(manifestUrl, { method: "GET", mode: "cors" });
+              if (mresp.ok) {
+                const manifest = await mresp.json();
+                if (manifest.icons && manifest.icons.length) {
+                  manifest.icons.sort((a,b) => {
+                    const aSz = parseInt((a.sizes||"0").split("x")[0]) || 0;
+                    const bSz = parseInt((b.sizes||"0").split("x")[0]) || 0;
+                    return bSz - aSz;
+                  });
+                  for (const icon of manifest.icons) {
+                    const iconUrl = new URL(icon.src, manifestUrl).href;
+                    try {
+                      await testImageLoad(iconUrl, 2000);
+                      return iconUrl;
+                    } catch (e) { /* try next */ }
+                  }
+                }
+              }
+            } catch (e) { /* ignore manifest errors/CORS */ }
+          }
+        }
+      }
+    } catch (e) {
+      // network/CORS - ignore
     }
 
     return null;
@@ -225,22 +290,33 @@ function makeTile(it) {
   const iconEl = el.querySelector(".icon");
   if (it.icon && (it.icon.startsWith('http') || it.icon.startsWith('data:'))) {
     // Use provided icon (favicon URL or local data URL)
+    iconEl.innerHTML = "";
+    iconEl.style.background = "transparent";
+    iconEl.style.color = "transparent";
+    iconEl.style.textShadow = "none";
+
     const img = document.createElement('img');
     img.src = it.icon;
     img.style.width = '100%';
     img.style.height = '100%';
     img.style.borderRadius = '14px';
     img.style.objectFit = 'cover';
+
+    // On error, restore generated text/icon appearance
     img.onerror = () => {
-      // Fallback to generated icon if image fails to load
       iconEl.innerHTML = iconText;
       iconEl.style.background = bg;
+      iconEl.style.color = '#041218';
+      iconEl.style.textShadow = '0 2px 8px rgba(0,0,0,0.4)';
     };
-    iconEl.innerHTML = '';
+
     iconEl.appendChild(img);
   } else {
-    // Use generated text
+    // Use generated text/icon and background
+    iconEl.innerHTML = iconText;
     iconEl.style.background = bg;
+    iconEl.style.color = '#041218';
+    iconEl.style.textShadow = '0 2px 8px rgba(0,0,0,0.4)';
   }
 
   // Right-click context menu
@@ -639,72 +715,44 @@ function setLanguage(lang) {
 
 // Internationalization helper
 async function localizePage() {
-  const effectiveLocale = getEffectiveLocale();
-  
-  let messages = {};
-  
-  // Load messages for the effective locale
-  try {
-    const response = await fetch(`_locales/${effectiveLocale}/messages.json`);
-    if (response.ok) {
-      messages = await response.json();
-    } else {
-      console.warn(`Failed to load messages for locale: ${effectiveLocale}`);
-    }
-  } catch (error) {
-    console.error('Error loading locale messages:', error);
-  }
-  
-  // Helper function to get message from loaded messages or fallback to chrome.i18n
+  // Use chrome.i18n.getMessage directly — do not fetch _locales JSON files.
   function getMessage(key, substitutions) {
-    if (messages[key] && messages[key].message) {
-      let msg = messages[key].message;
-      if (substitutions && Array.isArray(substitutions)) {
-        substitutions.forEach((sub, index) => {
-          msg = msg.replace(new RegExp(`\\$${index + 1}`, 'g'), sub);
-        });
-      }
-      return msg;
+    try {
+      return chrome.i18n.getMessage(key, substitutions) || "";
+    } catch (e) {
+      return "";
     }
-    // Fallback to chrome.i18n
-    return chrome.i18n.getMessage(key, substitutions);
   }
-  
+
   // Localize elements with data-i18n attribute
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const key = el.getAttribute('data-i18n');
     const message = getMessage(key);
-    if (message) {
-      el.textContent = message;
-    }
+    if (message) el.textContent = message;
   });
-  
+
   // Localize placeholders
   document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
     const key = el.getAttribute('data-i18n-placeholder');
     const message = getMessage(key);
-    if (message) {
-      el.placeholder = message;
-    }
+    if (message) el.placeholder = message;
   });
-  
+
   // Localize titles
   document.querySelectorAll('[data-i18n-title]').forEach(el => {
     const key = el.getAttribute('data-i18n-title');
     const message = getMessage(key);
-    if (message) {
-      el.title = message;
-    }
+    if (message) el.title = message;
   });
-  
+
   // Localize select options
   document.querySelectorAll('option[data-i18n]').forEach(el => {
     const key = el.getAttribute('data-i18n');
     const message = getMessage(key);
-    if (message) {
-      el.textContent = message;
-    }
+    if (message) el.textContent = message;
   });
+
+  return Promise.resolve();
 }
 
 // Sidebar functions
@@ -746,7 +794,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (languageSelect) {
     languageSelect.value = currentLanguage;
   }
-  
+
+  // Set bookmark sync count input after loading
+  const bookmarkSyncInput = document.getElementById("bookmarkSyncCount");
+  if (bookmarkSyncInput) {
+    bookmarkSyncInput.value = bookmarkSyncCount;
+  }
+
   const addBtn = document.getElementById("addBtn");
   const modal = document.getElementById("modal");
   const favForm = document.getElementById("favForm");
@@ -880,9 +934,21 @@ document.addEventListener("DOMContentLoaded", async () => {
     settingsModal.setAttribute("aria-hidden", "true");
   });
 
-  settingsApply.addEventListener("click", () => {
+  settingsApply.addEventListener("click", async () => {
     const selectedLang = languageSelect.value;
     setLanguage(selectedLang);
+
+    // Read and persist bookmark sync count
+    const input = document.getElementById("bookmarkSyncCount");
+    if (input) {
+      const v = parseInt(input.value, 10);
+      bookmarkSyncCount = (isNaN(v) || v < 0) ? 0 : Math.min(50, v);
+      saveBookmarkSyncCount();
+      // Re-run bookmark load with new limit and re-render
+      await loadBookmarks(bookmarkSyncCount);
+      renderAll();
+      autoAlignTiles();
+    }
   });
 
   // Export/Import functionality
@@ -920,40 +986,67 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 });
 
-// Load first 5 bookmarks from bookmarks bar (if available and not already in items)
-async function loadBookmarks() {
+// Load first N bookmarks from bookmarks bar (if available and not already in items)
+// If limit === 0, skip importing any bookmarks.
+async function loadBookmarks(limit = bookmarkSyncCount) {
   if (!chrome.bookmarks) return; // Skip if permission not granted or not available
-  
+
   try {
     const tree = await new Promise(resolve => chrome.bookmarks.getTree(resolve));
-    const bookmarksBar = tree[0].children.find(child => child.title === 'Bookmarks bar' || child.id === '1'); // Typically ID 1 is the bookmarks bar
+    const bookmarksBar = tree[0].children.find(child => child.title === 'Bookmarks bar' || child.id === '1');
     if (bookmarksBar && bookmarksBar.children) {
-      const bookmarks = bookmarksBar.children.filter(child => child.url); // Only bookmarks (not folders)
-      const toAdd = bookmarks.slice(0, 5); // First 5 (or all if fewer)
-      
-      toAdd.forEach(bookmark => {
-        // Skip if already in items (by URL)
-        if (!items.some(it => it.url === bookmark.url)) {
-          // Find first available grid position
-          let col = 0, row = 0;
-          while (isPositionOccupied(col, row)) {
-            col++;
-            if (col > 10) { // Max 11 items per row
-              col = 0;
-              row++;
-            }
-          }
-          
-          items.push({
-            id: uid(),
-            name: bookmark.title,
-            url: bookmark.url,
-            col,
-            row,
-            icon: "" // Let generateIconText handle icon
-          });
+      const bookmarks = bookmarksBar.children.filter(child => child.url); // only bookmarks
+      const toConsider = (limit > 0) ? bookmarks.slice(0, limit) : [];
+
+      // Remove previously imported bookmarks that are now outside the new limit
+      const allowedIds = new Set(toConsider.map(b => b.id));
+      let removed = false;
+      items = items.filter(it => {
+        if (it.bookmarkId && !allowedIds.has(it.bookmarkId)) {
+          removed = true;
+          return false;
         }
+        return true;
       });
+      if (removed) {
+        save();
+      }
+
+      // Add/bind the allowed bookmarks
+      toConsider.forEach(bookmark => {
+        // If an existing item has the same URL, bind its bookmarkId so it will be synced
+        const existing = items.find(it => it.url === bookmark.url);
+        if (existing) {
+          if (!existing.bookmarkId) existing.bookmarkId = bookmark.id;
+          return;
+        }
+
+        // Skip if already tracked by bookmarkId (safety)
+        if (items.some(it => it.bookmarkId === bookmark.id || it.url === bookmark.url)) return;
+
+        // Find first available grid position
+        let col = 0, row = 0;
+        while (isPositionOccupied(col, row)) {
+          col++;
+          if (col > 10) { // Max 11 items per row
+            col = 0;
+            row++;
+          }
+        }
+
+        items.push({
+          id: uid(),
+          name: bookmark.title,
+          url: bookmark.url,
+          col,
+          row,
+          icon: "",
+          bookmarkId: bookmark.id
+        });
+      });
+
+      // Persist if we added any
+      save();
     }
   } catch (error) {
     console.error('Error loading bookmarks:', error);
@@ -1033,7 +1126,6 @@ async function applyIconChange(itemId, iconType) {
   } else if (iconType === "website") {
     const fav = await fetchFavicon(it.url);
     if (!fav) {
-      // signal failure to caller so it can alert immediately and keep modal open
       return false;
     }
     newIcon = fav;
@@ -1045,6 +1137,10 @@ async function applyIconChange(itemId, iconType) {
       } catch (e) {
         return false;
       }
+    } else if (typeof iconType === 'string' && iconType.startsWith('extension:')) {
+      const filename = iconType.split(':')[1];
+      if (!filename) return false;
+      newIcon = extensionAsset(filename); // chrome.runtime.getURL('icons/...')
     } else {
       return false;
     }
@@ -1130,21 +1226,112 @@ function fetchMissingFavicons() {
       if (!tile) return;
       const iconEl = tile.querySelector(".icon");
       if (!iconEl) return;
+
+      // Clear previous generated text/icon styling so the image is visible immediately.
+      // (makeTile sets these when an item already had an icon; ensure parity here)
+      iconEl.innerHTML = "";
+      iconEl.style.background = "transparent";
+      iconEl.style.color = "transparent";
+      iconEl.style.textShadow = "none";
+
       const img = document.createElement("img");
       img.src = fav;
       img.style.width = "100%";
       img.style.height = "100%";
       img.style.borderRadius = "14px";
       img.style.objectFit = "cover";
+
+      img.onload = () => {
+        // image loaded successfully — nothing else needed because we cleared container styles above
+      };
+
       img.onerror = () => {
         // fallback to generated text if image load fails
         iconEl.innerHTML = generateIconText(it.url, it.name, it.icon);
         iconEl.style.background = colorFromString(it.url || it.name);
+        iconEl.style.color = '#041218';
+        iconEl.style.textShadow = '0 2px 8px rgba(0,0,0,0.4)';
       };
-      iconEl.innerHTML = "";
+
       iconEl.appendChild(img);
     } catch (e) {
       console.debug("favicon load failed for", it.url, e);
     }
+  });
+}
+
+// New: keep in sync with browser bookmarks (create / change / remove)
+function setupBookmarkSyncListeners() {
+  if (!chrome.bookmarks) return;
+
+  // When a bookmark is removed -> remove corresponding item(s)
+  chrome.bookmarks.onRemoved.addListener((id, removeInfo) => {
+    let removed = false;
+    items = items.filter(it => {
+      if (it.bookmarkId === id) {
+        removed = true;
+        return false;
+      }
+      return true;
+    });
+    if (removed) {
+      save();
+      renderAll();
+      autoAlignTiles();
+    }
+  });
+
+  // When a bookmark is changed (title/url) -> update corresponding item
+  chrome.bookmarks.onChanged.addListener((id, changeInfo) => {
+    const idx = items.findIndex(it => it.bookmarkId === id);
+    if (idx !== -1) {
+      if (changeInfo.title !== undefined) items[idx].name = changeInfo.title;
+      if (changeInfo.url !== undefined) {
+        items[idx].url = changeInfo.url;
+        items[idx].icon = ""; // clear icon so we will re-fetch
+        fetchMissingFavicons();
+      }
+      save();
+      renderAll();
+    }
+  });
+
+  // When a bookmark is created -> add it (if within configured sync count)
+  chrome.bookmarks.onCreated.addListener((id, bookmark) => {
+    if (!bookmark.url) return;
+    // Count current tracked bookmarks
+    const trackedCount = items.filter(it => it.bookmarkId).length;
+    if (trackedCount >= bookmarkSyncCount) return; // respect user-configured limit
+
+    // Skip if already tracked
+    if (items.some(it => it.bookmarkId === id || it.url === bookmark.url)) return;
+
+    // Find first available grid position
+    let col = 0, row = 0;
+    while (isPositionOccupied(col, row)) {
+      col++;
+      if (col > 10) { col = 0; row++; }
+    }
+
+    const newItem = {
+      id: uid(),
+      name: bookmark.title || bookmark.url,
+      url: bookmark.url,
+      col,
+      row,
+      icon: "",
+      bookmarkId: id
+    };
+
+    items.push(newItem);
+    save();
+    renderAll();
+    autoAlignTiles();
+    fetchMissingFavicons();
+  });
+
+  // Optional: react to moved events if you want to track folder placement — currently ignored
+  chrome.bookmarks.onMoved.addListener((id, moveInfo) => {
+    // no-op for now
   });
 }

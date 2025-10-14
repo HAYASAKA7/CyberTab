@@ -121,5 +121,8 @@
   },
   "enableAutoAlign": {
     "message": "Enable Auto Align"
+  },
+  "bookmarkSyncLabel": {
+    "message": "Sync bookmarks (max)"
   }
 }
