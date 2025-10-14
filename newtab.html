@@ -1,0 +1,138 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CyberTab</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Background effects -->
+  <div class="vfx" aria-hidden="true">
+    <div class="bg-blobs" aria-hidden="true">
+      <div class="blob b1"></div>
+      <div class="blob b2"></div>
+      <div class="blob b3"></div>
+    </div>
+    <div class="vfx-grid" aria-hidden="true"></div>
+  </div>
+
+  <!-- Sidebar menu -->
+  <div id="sidebar" class="sidebar">
+    <div class="sidebar-content">
+      <button id="addBtn" class="btn neon" data-i18n="addButton">＋ Add</button>
+      <button id="resetBtn" class="btn ghost" data-i18n="resetButton">Reset</button>
+      <button id="settingsBtn" class="btn ghost" data-i18n="settingsButton">Settings</button>
+    </div>
+  </div>
+
+  <!-- Sidebar overlay -->
+  <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+  <header class="bar">
+    <button id="menuToggle" class="menu-toggle">
+      <span class="hamburger-line"></span>
+      <span class="hamburger-line"></span>
+      <span class="hamburger-line"></span>
+    </button>
+    <div class="brand" data-i18n="appName">CYBER • TAB</div>
+  </header>
+
+  <!-- Search box -->
+  <div class="search-container">
+    <form id="searchForm" class="search-box">
+      <div class="search-engine-toggle">
+        <button type="button" id="engineToggle" class="engine-btn" data-i18n-title="switchEngineTitle" title="Switch search engine">
+          <span class="engine-icon">🔍</span>
+          <span class="engine-name">Google</span>
+        </button>
+      </div>
+      <input 
+        type="text" 
+        id="searchInput" 
+        class="search-input" 
+        data-i18n-placeholder="searchPlaceholder"
+        placeholder="Search the web..." 
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <button type="submit" class="search-btn" data-i18n-title="searchTitle" title="Search">
+        <span class="search-arrow">→</span>
+      </button>
+    </form>
+  </div>
+
+  <main id="board" class="board"></main>
+
+  <!-- Add modal -->
+  <div id="modal" class="modal hidden" role="dialog" aria-hidden="true">
+    <form id="favForm" class="card">
+      <h3 data-i18n="addFavoriteTitle">Add Favorite</h3>
+      <label>
+        <span data-i18n="nameLabel">Name</span>
+        <input id="favName" required maxlength="30" data-i18n-placeholder="namePlaceholder" placeholder="Enter site name" />
+      </label>
+      <label>
+        <span data-i18n="urlLabel">URL</span>
+        <input id="favURL" required data-i18n-placeholder="urlPlaceholder" placeholder="https://example.com" />
+      </label>
+      <label>
+        <span data-i18n="chooseLocalIcon">Choose Local Icon</span>
+      </label>
+      <div class="file-picker">
+        <button type="button" id="favLocalIconBtn" class="btn ghost file-btn" data-i18n="chooseLocalIcon">Choose File</button>
+        <span id="favLocalIconName" class="file-name"></span>
+        <input type="file" id="favLocalIcon" accept="image/*" style="display:none" />
+      </div>
+      <div class="row">
+        <button type="button" id="cancel" class="btn ghost" data-i18n="cancelButton">Cancel</button>
+        <button type="submit" class="btn neon" data-i18n="saveButton">Save</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Settings modal -->
+  <div id="settingsModal" class="modal hidden" role="dialog" aria-hidden="true">
+    <div class="card settings-card">
+      <h3 data-i18n="settingsTitle">Settings</h3>
+      <label>
+        <span data-i18n="languageLabel">Language</span>
+        <select id="languageSelect">
+          <option value="auto" data-i18n="languageAuto">Auto (Browser)</option>
+          <option value="en" data-i18n="languageEnglish">English</option>
+          <option value="zh_CN" data-i18n="languageChinese">中文</option>
+          <option value="jp" data-i18n="languageJapanese">日本語</option>
+        </select>
+      </label>
+      <div class="settings-actions">
+        <button type="button" id="exportBtn" class="btn ghost" data-i18n="exportSettings">Export Settings</button>
+        <button type="button" id="importBtn" class="btn ghost" data-i18n="importSettings">Import Settings</button>
+        <input type="file" id="importFile" accept=".json" style="display: none;" />
+      </div>
+      <div class="row">
+        <button type="button" id="settingsCancel" class="btn ghost" data-i18n="cancelButton">Cancel</button>
+        <button type="button" id="settingsApply" class="btn neon" data-i18n="applySettings">Apply</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Icon modal -->
+  <div id="editIconModal" class="modal hidden" role="dialog" aria-hidden="true">
+    <div class="card edit-icon-card">
+      <h3 data-i18n="editIconTitle">Edit Icon</h3>
+      <div class="icon-options">
+        <button type="button" id="useDefaultIcon" class="btn ghost icon-option" data-i18n="useDefaultIcon">Use Default Icon</button>
+        <button type="button" id="useWebsiteIcon" class="btn ghost icon-option" data-i18n="useWebsiteIcon">Use Website Icon</button>
+        <button type="button" id="useLocalIcon" class="btn ghost icon-option" data-i18n="useLocalIcon">Use Local Icon</button>
+        <input type="file" id="editLocalIcon" accept="image/*" style="display: none;" />
+      </div>
+      <div class="row">
+        <button type="button" id="editIconCancel" class="btn ghost" data-i18n="cancelButton">Cancel</button>
+        <button type="button" id="editIconApply" class="btn neon" data-i18n="applyIcon">Apply</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="newtab.js"></script>
+</body>
+</html>
