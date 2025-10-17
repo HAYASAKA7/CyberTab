@@ -21,12 +21,13 @@ const BOOKMARK_SYNC_COUNT_KEY = "cyber_tab_bookmark_sync_count";
 const BACKGROUND_KEY = "cyber_tab_background_image";
 
 let items = []; // saved tiles: {id,name,url,col,row,icon,bookmarkId?}
-let currentEngine = "google"; // "google" or "bing"
+let currentEngine = "bing"; // "google" or "bing"
 let currentLanguage = "auto"; // "auto", "en", "zh_CN", "jp"
 let autoAlign = true; // whether to auto-align tiles
 let bookmarkSyncCount = 5; // how many bookmarks to import/sync from bookmarks bar
 let backgroundImage = ""; // background image data URL
 let contextMenu = null; // reference to context menu element
+let messagesMapCache = null; // cache for localized messages
 
 // Dynamic layout state (computed at runtime based on board width)
 let currentMaxCols = 11;
@@ -101,6 +102,15 @@ function load() {
       fetchMissingFavicons();
     });
   });
+}
+
+function getMessageFor(key, substitutions) {
+  if (messagesMapCache && messagesMapCache[key] !== undefined) return messagesMapCache[key];
+  try {
+    return chrome.i18n.getMessage(key, substitutions) || "";
+  } catch (e) {
+    return "";
+  }
 }
 
 function applyBackground(src) {
@@ -542,11 +552,12 @@ function showContextMenu(x, y, itemId) {
     </div>
   `;
   
-  // Fill localized texts for dynamic menu items (use chrome.i18n so it follows language setting)
+  const editText = getMessageFor("editIconMenuItem") || "Edit Icon";
+  const deleteText = getMessageFor("deleteMenuItem") || "Delete";
   const editSpan = menu.querySelector('[data-i18n="editIconMenuItem"] span:last-child');
   const deleteSpan = menu.querySelector('[data-i18n="deleteMenuItem"] span:last-child');
-  if (editSpan) editSpan.textContent = chrome.i18n.getMessage("editIconMenuItem") || "Edit Icon";
-  if (deleteSpan) deleteSpan.textContent = chrome.i18n.getMessage("deleteMenuItem") || "Delete";
+  if (editSpan) editSpan.textContent = editText;
+  if (deleteSpan) deleteSpan.textContent = deleteText;
 
   document.body.appendChild(menu);
   contextMenu = menu;
@@ -586,9 +597,9 @@ function showBoardContextMenu(x, y) {
   hideContextMenu();
   
   const key = autoAlign ? "disableAutoAlign" : "enableAutoAlign";
-  const alignText = chrome.i18n.getMessage(key) || (autoAlign ? "Disable Auto Align" : "Enable Auto Align");
+  const alignText = getMessageFor(key) || (autoAlign ? "Disable Auto Align" : "Enable Auto Align");
   const alignIcon = autoAlign ? '🔒' : '🔓';
-  const addText = chrome.i18n.getMessage("addButton") || "Add";
+  const addText = getMessageFor("addButton") || "Add";
   
   const menu = document.createElement("div");
   menu.className = "context-menu";
@@ -934,8 +945,34 @@ function setLanguage(lang) {
 
 // Internationalization helper
 async function localizePage() {
-  // Use chrome.i18n.getMessage directly — do not fetch _locales JSON files.
+  // Load messages.json for a specific locale (returns map key->message or null)
+  async function loadMessagesForLocale(locale) {
+    try {
+      const url = chrome.runtime.getURL(`_locales/${locale}/messages.json`);
+      const resp = await fetch(url);
+      if (!resp.ok) return null;
+      const json = await resp.json();
+      const map = {};
+      for (const k in json) {
+        if (json[k] && typeof json[k].message === 'string') map[k] = json[k].message;
+      }
+      return map;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // If user selected a specific language, try to load that messages.json
+  let messagesMap = null;
+  if (currentLanguage && currentLanguage !== "auto") {
+    messagesMap = await loadMessagesForLocale(currentLanguage);
+  }
+
+  messagesMapCache = messagesMap || null;
+
+  // Fallback getter: prefer loaded messagesMap, otherwise use chrome.i18n
   function getMessage(key, substitutions) {
+    if (messagesMap && messagesMap[key] !== undefined) return messagesMap[key];
     try {
       return chrome.i18n.getMessage(key, substitutions) || "";
     } catch (e) {
