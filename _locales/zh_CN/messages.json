@@ -142,5 +142,29 @@
   },
   "focusSearchOnLoad": {
     "message": "新标签页默认聚焦搜索框"
+  },
+  "rightSidebarPlaceholder": {
+    "message": "快速访问"
+  },
+  "rightSidebarSettingsTitle": {
+    "message": "快速链接设置"
+  },
+  "quickLinkUrlPlaceholder": {
+    "message": "https://example.com"
+  },
+  "quickLinksEmpty": {
+    "message": "暂无快速链接"
+  },
+  "deleteQuickLinkConfirm": {
+    "message": "确定删除此快速链接？"
+  },
+  "quickLinkDuplicate": {
+    "message": "该链接已存在！"
+  },
+  "twitterAccountPlaceholder": {
+    "message": "@username 或 https://x.com/username"
+  },
+  "twitterAccountsEmpty": {
+    "message": "暂无推特账户"
   }
 }

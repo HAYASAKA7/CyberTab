@@ -6,11 +6,30 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return;
   }
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
+
   fetch(message.url, { 
     method: 'GET', 
     cache: 'no-store',
+    signal: controller.signal,
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept': 'application/rss+xml, application/xml, text/xml, application/json, text/html, */*'
+    },
+    redirect: 'follow'
   })
     .then(async resp => {
+      clearTimeout(timeoutId);
+
+      if (resp.redirected && message.url.includes('nitter')) {
+        const finalUrl = resp.url;
+        if (!finalUrl.includes('nitter') && !finalUrl.includes('/rss')) {
+          sendResponse({ ok: false, error: `Redirected to unexpected URL: ${finalUrl}` });
+          return;
+        }
+      }
+
       if (!resp.ok) {
         sendResponse({ ok: false });
         return;

@@ -10,6 +10,7 @@ const AUTO_ALIGN_KEY = "cyber_tab_auto_align";
 const BOOKMARK_SYNC_COUNT_KEY = "cyber_tab_bookmark_sync_count";
 const BACKGROUND_KEY = "cyber_tab_background_image";
 const LOCAL_ICONS_KEY = "cyber_tab_local_icons";
+const QUICK_LINKS_KEY = "cyber_tab_quick_links";
 
 let items = []; // saved tiles: {id,name,url,col,row,icon,bookmarkId?}
 let currentEngine = "bing"; // "google" or "bing"
@@ -19,6 +20,11 @@ let bookmarkSyncCount = 5; // how many bookmarks to import/sync from bookmarks b
 let backgroundImage = ""; // background image data URL
 let contextMenu = null; // reference to context menu element
 let messagesMapCache = null; // cache for localized messages
+let quickLinks = []; // quick links for right sidebar
+
+// Right sidebar functions
+let rightSidebarTriggerZone = 20; // pixels from right edge to trigger
+let rightSidebarDebounceTimer = null;
 
 // Dynamic layout state (computed at runtime based on board width)
 let currentMaxCols = 11;
@@ -98,15 +104,72 @@ function saveBackground() {
   }
 }
 
+function openRightSidebar() {
+  const rightSidebar = document.getElementById("rightSidebar");
+  const overlay = document.getElementById("sidebarOverlay");
+  
+  if (!rightSidebar.classList.contains("open")) {
+    rightSidebar.classList.add("open");
+    overlay.classList.add("active");
+  }
+}
+
+function closeRightSidebar() {
+  const rightSidebar = document.getElementById("rightSidebar");
+  const overlay = document.getElementById("sidebarOverlay");
+  const leftSidebar = document.getElementById("sidebar");
+  
+  // Only remove overlay if left sidebar is also closed
+  if (!leftSidebar.classList.contains("open")) {
+    overlay.classList.remove("active");
+  }
+  
+  rightSidebar.classList.remove("open");
+}
+
+function setupRightSidebarTrigger() {
+  const rightSidebar = document.getElementById("rightSidebar");
+  
+  // Mouse move detection for trigger zone
+  document.addEventListener("mousemove", (e) => {
+    if (rightSidebar.dataset.lockOpen === "true") return;
+    const distanceFromRight = window.innerWidth - e.clientX;
+    
+    // Trigger when mouse is within trigger zone from right edge
+    if (distanceFromRight <= rightSidebarTriggerZone && !rightSidebar.classList.contains("open")) {
+      clearTimeout(rightSidebarDebounceTimer);
+      rightSidebarDebounceTimer = setTimeout(() => {
+        openRightSidebar();
+      }, 50); // Small delay to prevent accidental triggers
+    }
+  });
+  
+  // Close when mouse leaves the sidebar
+  rightSidebar.addEventListener("mouseleave", (e) => {
+    if (rightSidebar.dataset.lockOpen === "true") return;
+    // Check if mouse is leaving to the right (outside the sidebar)
+    const rect = rightSidebar.getBoundingClientRect();
+    if (e.clientX > rect.right || e.clientX < rect.left) {
+      closeRightSidebar();
+    }
+  });
+  
+  // Prevent closing when moving within sidebar
+  rightSidebar.addEventListener("mouseenter", () => {
+    clearTimeout(rightSidebarDebounceTimer);
+  });
+}
+
 function load() {
   return new Promise(async resolve => {
-    chrome.storage.sync.get([STORAGE_KEY, ENGINE_KEY, LANGUAGE_KEY, AUTO_ALIGN_KEY, BOOKMARK_SYNC_COUNT_KEY, BACKGROUND_KEY], async res => {
+    chrome.storage.sync.get([STORAGE_KEY, ENGINE_KEY, LANGUAGE_KEY, AUTO_ALIGN_KEY, BOOKMARK_SYNC_COUNT_KEY, BACKGROUND_KEY, QUICK_LINKS_KEY], async res => {
       items = res[STORAGE_KEY] || defaultItems();
       currentEngine = res[ENGINE_KEY] || "google";
       currentLanguage = res[LANGUAGE_KEY] || "auto";
       autoAlign = (typeof res[AUTO_ALIGN_KEY] !== "undefined") ? res[AUTO_ALIGN_KEY] : true;
       bookmarkSyncCount = (typeof res[BOOKMARK_SYNC_COUNT_KEY] !== "undefined") ? res[BOOKMARK_SYNC_COUNT_KEY] : 5;
       backgroundImage = res[BACKGROUND_KEY] || "";
+      quickLinks = res[QUICK_LINKS_KEY] || [];
 
       chrome.storage.local.get([LOCAL_ICONS_KEY, BACKGROUND_KEY], localRes => {
         const localIcons = localRes[LOCAL_ICONS_KEY] || {};
@@ -127,6 +190,7 @@ function load() {
           await loadBookmarks(bookmarkSyncCount); // Load bookmarks after loading stored items
           setupBookmarkSyncListeners(); // start syncing browser bookmarks -> extension items
           renderAll();
+          renderQuickLinks();
           applyBackground(backgroundImage);
           updateEngineUI();
           await localizePage(); // Localize after loading settings
@@ -172,6 +236,332 @@ function renderAll(){
   board.innerHTML = "";
   items.forEach(it => board.appendChild(makeTile(it)));
   if (autoAlign) autoAlignTiles();
+}
+
+function saveQuickLinks() {
+  chrome.storage.sync.set({ [QUICK_LINKS_KEY]: quickLinks });
+}
+
+function addQuickLink(input) {
+  if (!input || !input.trim()) return false;
+  
+  let username = input.trim();
+  
+  if (username.startsWith('@')) {
+    username = username.slice(1);
+  }
+  
+  const urlMatch = username.match(/(?:x\.com|twitter\.com)\/([^\/\?]+)/i);
+  if (urlMatch) {
+    username = urlMatch[1];
+  }
+  
+  username = username.replace(/[^a-zA-Z0-9_]/g, '');
+  
+  if (!username) return false;
+  
+  if (quickLinks.some(link => link.username.toLowerCase() === username.toLowerCase())) {
+    return false;
+  }
+  
+  const newLink = {
+    id: uid(),
+    username: username,
+    handle: `@${username}`,
+    avatar: '',
+    tweets: [],
+    lastUpdate: null,
+    addedAt: Date.now()
+  };
+  
+  quickLinks.push(newLink);
+  saveQuickLinks();
+  renderQuickLinks();
+  renderTwitterCards();
+  
+  fetchTwitterAccount(newLink.id);
+  
+  return true;
+}
+
+function deleteQuickLink(id) {
+  quickLinks = quickLinks.filter(link => link.id !== id);
+  saveQuickLinks();
+  renderQuickLinks();
+}
+
+function renderQuickLinks() {
+  const listEl = document.getElementById("quickLinksList");
+  if (!listEl) return;
+
+  const emptyText = getMessageFor("twitterAccountsEmpty") || "No Twitter accounts yet";
+  listEl.setAttribute("data-empty-text", emptyText);
+  
+  if (quickLinks.length === 0) {
+    listEl.innerHTML = "";
+    return;
+  }
+  
+  listEl.innerHTML = quickLinks.map(link => `
+    <div class="quick-link-item" data-link-id="${link.id}">
+      <span class="quick-link-item-url" title="https://x.com/${escapeHtml(link.username)}">${escapeHtml(link.handle)}</span>
+      <span class="quick-link-item-delete" data-action="delete">🗑️</span>
+    </div>
+  `).join("");
+  
+  // Add click handlers
+  listEl.querySelectorAll(".quick-link-item").forEach(el => {
+    const linkId = el.dataset.linkId;
+
+    el.addEventListener("click", (e) => {
+      if (e.target.dataset.action === "delete") return;
+      const link = quickLinks.find(l => l.id === linkId);
+      if (link) {
+        window.open(`https://x.com/${link.username}`, '_blank');
+      }
+    });
+    
+    // Delete button
+    const deleteBtn = el.querySelector("[data-action='delete']");
+    if (deleteBtn) {
+      deleteBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        deleteQuickLink(linkId);
+        renderTwitterCards();
+      });
+    }
+  });
+}
+
+function renderTwitterCards() {
+  const container = document.getElementById("twitterCardsContainer");
+  if (!container) return;
+  
+  // 保留默认卡片
+  const defaultCard = container.querySelector('.default-card');
+  
+  if (quickLinks.length === 0) {
+    container.innerHTML = '';
+    if (defaultCard) {
+      container.appendChild(defaultCard);
+    } else {
+      container.innerHTML = `
+        <div class="right-sidebar-card default-card">
+          <div class="right-sidebar-placeholder">
+            <span class="placeholder-icon">✨</span>
+          </div>
+        </div>
+      `;
+    }
+    return;
+  }
+  
+  container.innerHTML = quickLinks.map(link => createTwitterCardHTML(link)).join('');
+  
+  // 添加刷新按钮事件
+  container.querySelectorAll('.twitter-refresh-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const accountId = btn.dataset.accountId;
+      fetchTwitterAccount(accountId);
+    });
+  });
+  
+  // 添加推文点击事件
+  container.querySelectorAll('.twitter-tweet').forEach(tweet => {
+    tweet.addEventListener('click', () => {
+      window.open(tweet.dataset.url, '_blank');
+    });
+  });
+}
+
+// Create Twitter card HTML
+function createTwitterCardHTML(link) {
+  const hasError = link.error;
+  const isLoading = link.loading;
+  const hasTweets = link.tweets && link.tweets.length > 0;
+  
+  let contentHTML = '';
+  
+  if (isLoading) {
+    contentHTML = '<div class="twitter-card-loading">Loading tweets...</div>';
+  } else if (hasError) {
+    contentHTML = `<div class="twitter-card-error">${escapeHtml(link.error)}</div>`;
+  } else if (hasTweets) {
+    contentHTML = `
+      <div class="twitter-tweets">
+        ${link.tweets.slice(0, 5).map(tweet => `
+          <div class="twitter-tweet" data-url="${escapeHtml(tweet.url)}">
+            <div class="twitter-tweet-text">${escapeHtml(tweet.text)}</div>
+            <div class="twitter-tweet-time">${formatTwitterTime(tweet.time)}</div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  } else {
+    contentHTML = '<div class="twitter-card-loading">No tweets yet</div>';
+  }
+  
+  return `
+    <div class="right-sidebar-card" data-account-id="${link.id}">
+      <div class="twitter-card">
+        <div class="twitter-card-header">
+          ${link.avatar ? `<img src="${escapeHtml(link.avatar)}" class="twitter-avatar" alt="${escapeHtml(link.username)}">` : '<div class="twitter-avatar"></div>'}
+          <div class="twitter-user-info">
+            <div class="twitter-username">${escapeHtml(link.username)}</div>
+            <div class="twitter-handle">${escapeHtml(link.handle)}</div>
+          </div>
+          <button class="twitter-refresh-btn ${isLoading ? 'loading' : ''}" data-account-id="${link.id}" title="Refresh">
+            🔄
+          </button>
+        </div>
+        ${contentHTML}
+      </div>
+    </div>
+  `;
+}
+
+// Fetch Twitter account tweets via Nitter RSS
+async function fetchTwitterAccount(accountId) {
+  const link = quickLinks.find(l => l.id === accountId);
+  if (!link) return;
+  
+  link.loading = true;
+  link.error = null;
+  renderTwitterCards();
+  
+  try {
+    const nitterInstances = [
+      'https://nitter.privacydev.net',
+      'https://nitter.poast.org',
+      'https://nitter.net',
+      'https://nitter.1d4.us',
+      'https://nitter.kavin.rocks'
+    ];
+    
+    let lastError = null;
+    
+    for (const instance of nitterInstances) {
+      try {
+        const url = `${instance}/${link.username}/rss`;
+        
+        const response = await new Promise((resolve, reject) => {
+          chrome.runtime.sendMessage({ type: 'fetchSuggestions', url }, (response) => {
+            if (chrome.runtime.lastError) {
+              reject(new Error(chrome.runtime.lastError.message));
+            } else {
+              resolve(response);
+            }
+          });
+        });
+        
+        if (!response || !response.ok) {
+          lastError = 'Failed to fetch';
+          continue;
+        }
+        
+        const rssText = typeof response.data === 'string' ? response.data : '';
+        
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(rssText, 'text/xml');
+        
+        const parseError = xmlDoc.querySelector('parsererror');
+        if (parseError) {
+          lastError = 'Parse error';
+          continue;
+        }
+        
+        const items = xmlDoc.querySelectorAll('item');
+        
+        if (items.length === 0) {
+          lastError = 'No tweets found';
+          continue;
+        }
+        
+        const tweets = Array.from(items).slice(0, 5).map(item => {
+          const title = item.querySelector('title')?.textContent || '';
+          const description = item.querySelector('description')?.textContent || '';
+          const link = item.querySelector('link')?.textContent || '';
+          const pubDate = item.querySelector('pubDate')?.textContent || '';
+          
+          const cleanText = description.replace(/<[^>]*>/g, '').trim() || title;
+          
+          return {
+            text: cleanText.slice(0, 200),
+            url: link,
+            time: new Date(pubDate).getTime()
+          };
+        });
+        
+        if (!link.avatar) {
+          try {
+            const profileUrl = `${instance}/${link.username}`;
+            const profileResp = await new Promise(resolve => {
+              chrome.runtime.sendMessage({ type: 'fetchSuggestions', url: profileUrl }, resolve);
+            });
+            
+            if (profileResp && profileResp.ok) {
+              const html = typeof profileResp.data === 'string' ? profileResp.data : '';
+              const avatarMatch = html.match(/class="avatar"[^>]*src="([^"]+)"/);
+              if (avatarMatch) {
+                link.avatar = `${instance}${avatarMatch[1]}`;
+              }
+            }
+          } catch (e) {
+          }
+        }
+        
+        link.tweets = tweets;
+        link.lastUpdate = Date.now();
+        link.loading = false;
+        link.error = null;
+        
+        saveQuickLinks();
+        renderTwitterCards();
+        return;
+        
+      } catch (e) {
+        lastError = e.message || 'Network error';
+        continue;
+      }
+    }
+    
+    throw new Error(lastError || 'All Nitter instances failed');
+    
+  } catch (error) {
+    console.error('Fetch Twitter account error:', error);
+    link.loading = false;
+    link.error = 'Failed to load tweets';
+    saveQuickLinks();
+    renderTwitterCards();
+  }
+}
+
+// Format timestamp to relative time
+function formatTwitterTime(timestamp) {
+  const now = Date.now();
+  const diff = now - timestamp;
+  
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+  
+  if (minutes < 1) return 'Just now';
+  if (minutes < 60) return `${minutes}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  if (days < 7) return `${days}d ago`;
+  
+  return new Date(timestamp).toLocaleDateString();
+}
+
+// Auto-refresh Twitter accounts every 5 minutes
+function setupTwitterAutoRefresh() {
+  setInterval(() => {
+    quickLinks.forEach(link => {
+      if (link.lastUpdate && Date.now() - link.lastUpdate > 300000) { // 5分钟
+        fetchTwitterAccount(link.id);
+      }
+    });
+  }, 60000);
 }
 
 // Calculate grid position from col/row
@@ -1150,10 +1540,13 @@ function closeSidebar() {
   const sidebar = document.getElementById("sidebar");
   const overlay = document.getElementById("sidebarOverlay");
   const toggle = document.getElementById("menuToggle");
+  const rightSidebar = document.getElementById("rightSidebar");
   
   sidebar.classList.remove("open");
-  overlay.classList.remove("active");
   toggle.classList.remove("active");
+  if (!rightSidebar.classList.contains("open")) {
+    overlay.classList.remove("active");
+  }
 }
 
 /* UI wiring */
@@ -1171,6 +1564,17 @@ document.addEventListener("DOMContentLoaded", async () => {
   
   // Initialize custom scrollbar behavior
   setupScrollbars();
+
+  // Setup right sidebar trigger
+  setupRightSidebarTrigger();
+  renderTwitterCards();
+  setupTwitterAutoRefresh();
+
+  quickLinks.forEach(link => {
+    if (!link.tweets || link.tweets.length === 0) {
+      fetchTwitterAccount(link.id);
+    }
+  });
 
   // Set language select value after loading
   const languageSelect = document.getElementById("languageSelect");
@@ -1342,7 +1746,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   
   // Sidebar functionality
   menuToggle.addEventListener("click", toggleSidebar);
-  sidebarOverlay.addEventListener("click", closeSidebar);
+  sidebarOverlay.addEventListener("click", () => {
+    closeSidebar();
+    closeRightSidebar(); // Also close right sidebar when clicking overlay
+  });
   
   // Search functionality
   searchForm.addEventListener("submit", e => {
@@ -1383,6 +1790,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (e.key === "Escape") {
       hideContextMenu();
       closeSidebar();
+
+      const rightSidebarSettingsModal = document.getElementById("rightSidebarSettingsModal");
+      if (rightSidebarSettingsModal && !rightSidebarSettingsModal.classList.contains("hidden")) {
+        rightSidebarSettingsModal.classList.add("hidden");
+        rightSidebarSettingsModal.setAttribute("aria-hidden", "true");
+        
+        const rightSidebar = document.getElementById("rightSidebar");
+        rightSidebar.classList.remove("disabled");
+        delete rightSidebar.dataset.lockOpen;
+      }
     }
   });
 
@@ -1518,6 +1935,61 @@ document.addEventListener("DOMContentLoaded", async () => {
       showBoardContextMenu(e.clientX, e.clientY);
     }
   });
+
+  // Right sidebar functionality
+  const rightSidebarSettingsBtn = document.getElementById("rightSidebarSettings");
+  const rightSidebarSettingsModal = document.getElementById("rightSidebarSettingsModal");
+  const rightSidebarSettingsClose = document.getElementById("rightSidebarSettingsClose");
+  const addQuickLinkBtn = document.getElementById("addQuickLinkBtn");
+  const quickLinkUrlInput = document.getElementById("quickLinkUrl");
+
+  if (rightSidebarSettingsBtn) {
+    rightSidebarSettingsBtn.addEventListener("click", () => {
+      rightSidebarSettingsModal.classList.remove("hidden");
+      rightSidebarSettingsModal.setAttribute("aria-hidden", "false");
+
+      const rightSidebar = document.getElementById("rightSidebar");
+      rightSidebar.classList.add("disabled"); 
+      rightSidebar.dataset.lockOpen = "true";
+
+      if (quickLinkUrlInput) quickLinkUrlInput.focus();
+    });
+  }
+
+  if (rightSidebarSettingsClose) {
+    rightSidebarSettingsClose.addEventListener("click", () => {
+      rightSidebarSettingsModal.classList.add("hidden");
+      rightSidebarSettingsModal.setAttribute("aria-hidden", "true");
+
+      const rightSidebar = document.getElementById("rightSidebar");
+      rightSidebar.classList.remove("disabled");
+      delete rightSidebar.dataset.lockOpen;
+    });
+  }
+
+  if (addQuickLinkBtn && quickLinkUrlInput) {
+    const handleAddQuickLink = () => {
+      const url = quickLinkUrlInput.value.trim();
+      if (url) {
+        const success = addQuickLink(url);
+        if (success) {
+          quickLinkUrlInput.value = "";
+          quickLinkUrlInput.focus();
+        } else {
+          alert(getMessageFor("quickLinkDuplicate") || "This link already exists!");
+        }
+      }
+    };
+
+    addQuickLinkBtn.addEventListener("click", handleAddQuickLink);
+    
+    quickLinkUrlInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        handleAddQuickLink();
+      }
+    });
+  }
 });
 
 // Load first N bookmarks from bookmarks bar (if available and not already in items)

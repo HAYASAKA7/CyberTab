@@ -142,5 +142,29 @@
   },
   "focusSearchOnLoad": {
     "message": "Focus search box on new tab"
+  },
+  "rightSidebarPlaceholder": {
+    "message": "Quick Access"
+  },
+  "rightSidebarSettingsTitle": {
+    "message": "Quick Links Settings"
+  },
+  "quickLinkUrlPlaceholder": {
+    "message": "https://example.com"
+  },
+  "quickLinksEmpty": {
+    "message": "No quick links yet"
+  },
+  "deleteQuickLinkConfirm": {
+    "message": "Delete this quick link?"
+  },
+  "quickLinkDuplicate": {
+    "message": "This link already exists!"
+  },
+  "twitterAccountPlaceholder": {
+  "message": "@username or https://x.com/username"
+  },
+  "twitterAccountsEmpty": {
+    "message": "No Twitter accounts yet"
   }
 }

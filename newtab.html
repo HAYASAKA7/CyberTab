@@ -30,6 +30,24 @@
   <!-- Sidebar overlay -->
   <div id="sidebarOverlay" class="sidebar-overlay"></div>
 
+  <!-- NEW: Right sidebar menu -->
+  <div id="rightSidebar" class="sidebar right-sidebar">
+    <!-- Top action buttons -->
+    <div class="right-sidebar-actions">
+      <button id="rightSidebarSettings" class="right-sidebar-btn" title="Settings">⚙️</button>
+    </div>
+    
+    <!-- Content cards -->
+    <div class="right-sidebar-cards" id="twitterCardsContainer">
+      <!-- Default card shown when no links -->
+      <div class="right-sidebar-card default-card">
+        <div class="right-sidebar-placeholder">
+          <span class="placeholder-icon">✨</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <header class="bar">
     <button id="menuToggle" class="menu-toggle">
       <span class="hamburger-line"></span>
@@ -154,6 +172,26 @@
       <div class="row">
         <button type="button" id="editIconCancel" class="btn ghost" data-i18n="cancelButton">Cancel</button>
         <button type="button" id="editIconApply" class="btn neon" data-i18n="applyIcon">Apply</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- NEW: Right Sidebar Settings Modal -->
+  <div id="rightSidebarSettingsModal" class="modal hidden" role="dialog" aria-hidden="true">
+    <div class="card settings-card">
+      <h3 data-i18n="rightSidebarSettingsTitle">Twitter Accounts</h3>
+      
+      <div class="quick-link-input-group">
+        <input id="quickLinkUrl" type="text" placeholder="@username or https://x.com/username" data-i18n-placeholder="twitterAccountPlaceholder" />
+        <button type="button" id="addQuickLinkBtn" class="btn neon quick-link-add-btn">➕</button>
+      </div>
+      
+      <div class="quick-links-list" id="quickLinksList">
+        <!-- Twitter accounts will be dynamically added here -->
+      </div>
+      
+      <div class="row">
+        <button type="button" id="rightSidebarSettingsClose" class="btn ghost" data-i18n="cancelButton">Close</button>
       </div>
     </div>
   </div>

@@ -142,5 +142,29 @@
   },
   "focusSearchOnLoad": {
     "message": "新しいタブで検索ボックスにフォーカス"
+  },
+  "rightSidebarPlaceholder": {
+    "message": "クイックアクセス"
+  },
+  "rightSidebarSettingsTitle": {
+    "message": "クイックリンク設定"
+  },
+  "quickLinkUrlPlaceholder": {
+    "message": "https://example.com"
+  },
+  "quickLinksEmpty": {
+    "message": "クイックリンクがありません"
+  },
+  "deleteQuickLinkConfirm": {
+    "message": "このクイックリンクを削除しますか？"
+  },
+  "quickLinkDuplicate": {
+    "message": "このリンクは既に存在します！"
+  },
+  "twitterAccountPlaceholder": {
+  "message": "@username / https://x.com/username"
+  },
+  "twitterAccountsEmpty": {
+    "message": "ツイッターアカウントがありません"
   }
 }
