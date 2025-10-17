@@ -273,7 +273,8 @@ html,body{
   background:linear-gradient(180deg,rgba(255,255,255,0.04),rgba(0,0,0,0.2));
   border:1px solid rgba(0,240,255,0.12);
   border-radius:14px;
-  overflow:hidden;
+  /* Allow suggestion popup to escape the search box; previously overflow:hidden clipped it */
+  overflow:visible;
   box-shadow:
     0 12px 36px rgba(0,0,0,0.7),
     0 0 28px rgba(0,240,255,0.04) inset;
@@ -357,6 +358,8 @@ html,body{
   cursor:pointer;
   transition:filter .2s, transform .15s;
   border-left:1px solid rgba(255,255,255,0.08);
+  /* match search-box radius: rounded on right side */
+  border-radius: 0 14px 14px 0;
 }
 
 .search-btn:hover{
@@ -374,6 +377,56 @@ html,body{
   display:flex;
   align-items:center;
   justify-content:center;
+}
+
+/* Clear (✕) circular button shown when mouse is over the search input */
+.clear-btn{
+  display:none; /* shown by JS by toggling .visible */
+  align-items:center;
+  justify-content:center;
+  width:36px;
+  height:36px;
+  min-width:36px;
+  margin:8px 8px 8px 6px;
+  border-radius:50%;
+  border:1px solid rgba(0,240,255,0.12);
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.12));
+  color:var(--neon-pink);
+  font-weight:800;
+  font-size:16px;
+  cursor:pointer;
+  box-shadow:
+    0 6px 18px rgba(0,0,0,0.6),
+    0 0 14px rgba(0,240,255,0.06) inset,
+    0 0 8px rgba(255,45,149,0.06);
+  transition: transform .12s ease, filter .12s ease, opacity .12s;
+  z-index: 600;
+}
+
+/* visible state controlled by JS */
+.clear-btn.visible{
+  display:flex;
+  opacity:1;
+}
+
+/* hover / active feedback */
+.clear-btn:hover{
+  transform: scale(1.06);
+  filter: brightness(1.08);
+  color: #041218;
+  background: linear-gradient(90deg, var(--neon-cyan), var(--neon-pink));
+  border-color: rgba(255,255,255,0.12);
+}
+
+/* reduce size on small screens */
+@media (max-width: 768px) {
+  .clear-btn{
+    width:30px;
+    height:30px;
+    min-width:30px;
+    font-size:14px;
+    margin:6px 6px 6px 6px;
+  }
 }
 
 /* Board */
@@ -710,6 +763,63 @@ input::placeholder{
   background-size: 12px 12px;
 }
 
+.suggestions{
+  position:absolute;
+  left:0;
+  right:0;
+  top: calc(100% + 10px);
+  max-width:680px;
+  margin:0 auto;
+  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(0,0,0,0.16));
+  border:1px solid rgba(0,240,255,0.12);
+  border-radius:12px;
+  box-shadow:
+    0 20px 50px rgba(0,0,0,0.7),
+    0 0 30px rgba(0,240,255,0.04) inset;
+  backdrop-filter: blur(8px) saturate(110%);
+  z-index:500;
+  overflow:hidden;
+  max-height:320px;
+  overflow-y:auto;
+  color:#e6f6ff;
+  font-weight:600;
+  display:none;
+}
+
+/* Each suggestion row */
+.suggestion-item{
+  padding:10px 14px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  cursor:pointer;
+  color:#bff7ff;
+  font-size:14px;
+  border-bottom:1px solid rgba(255,255,255,0.02);
+  transition:background .12s, color .12s, transform .08s;
+}
+
+.suggestion-item:last-child { border-bottom: none; }
+
+.suggestion-item:hover,
+.suggestion-item.active{
+  background: rgba(255,45,149,0.06);
+  color: var(--neon-pink);
+  transform: translateY(-1px);
+}
+
+/* small hint / secondary text (e.g., url) */
+.suggestion-sub{
+  font-size:12px;
+  color:var(--muted);
+  font-weight:500;
+  margin-left:auto;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  max-width:40%;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .bar{
@@ -809,4 +919,112 @@ input::placeholder{
     flex-direction:column;
     gap:8px;
   }
+
+  .suggestions{
+    max-width:90vw;
+    left:5%;
+    right:5%;
+    top: calc(100% + 8px);
+  }
+}
+
+/* Cyberpunk custom scrollbar behavior
+   - Default: hidden (to keep UI clean)
+   - :hover on container => full-width neon scrollbar
+   - .scrolling on container (set by JS during wheel) => compact visible thumb
+   - Works for WebKit (Chromium) and Firefox
+*/
+
+/* Apply to main scrollable regions */
+#board,
+#modal .card,
+#settingsModal .card,
+#editIconModal .card {
+  /* allow scrolling inside cards/modals */
+  max-height: calc(100vh - 120px);
+  overflow: auto;
+  scroll-behavior: smooth;
+  /* mark as auto-scrollable for JS targeting (optional) */
+  will-change: scroll;
+}
+
+/* --- Default: hidden scrollbar --- */
+/* Firefox */
+#board,
+#modal .card,
+#settingsModal .card,
+#editIconModal .card {
+  scrollbar-width: none; /* hide in firefox by default */
+  -ms-overflow-style: none;
+}
+
+/* WebKit: hide by default */
+#board::-webkit-scrollbar,
+#modal .card::-webkit-scrollbar,
+#settingsModal .card::-webkit-scrollbar,
+#editIconModal .card::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  transition: width .18s ease, height .18s ease;
+}
+
+/* Ensure default scrollbars are fully hidden when not active.
+   Target same regions as custom styles and also the suggestions box.
+   This prevents the native black/white scrollbar from showing. */
+#board,
+#modal .card,
+#settingsModal .card,
+#editIconModal .card,
+.suggestions {
+  /* Default: hide for Firefox */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+/* WebKit: hide by default (force) */
+#board::-webkit-scrollbar,
+#modal .card::-webkit-scrollbar,
+#settingsModal .card::-webkit-scrollbar,
+#editIconModal .card::-webkit-scrollbar,
+.suggestions::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* When NOT hovered and NOT in 'scrolling' mode keep everything transparent/no-thumb.
+   Use :not(:hover):not(.scrolling) to avoid interfering with :hover/.scrolling rules. */
+#board:not(:hover):not(.scrolling),
+#modal .card:not(:hover):not(.scrolling),
+#settingsModal .card:not(:hover):not(.scrolling),
+#editIconModal .card:not(:hover):not(.scrolling),
+.suggestions:not(:hover):not(.scrolling) {
+  scrollbar-width: none;
+}
+
+/* WebKit fallback: explicitly make thumb/track transparent when hidden */
+#board:not(:hover):not(.scrolling)::-webkit-scrollbar,
+#modal .card:not(:hover):not(.scrolling)::-webkit-scrollbar,
+#settingsModal .card:not(:hover):not(.scrolling)::-webkit-scrollbar,
+#editIconModal .card:not(:hover):not(.scrolling)::-webkit-scrollbar,
+.suggestions:not(:hover):not(.scrolling)::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+}
+
+#board:not(:hover):not(.scrolling)::-webkit-scrollbar-thumb,
+#modal .card:not(:hover):not(.scrolling)::-webkit-scrollbar-thumb,
+#settingsModal .card:not(:hover):not(.scrolling)::-webkit-scrollbar-thumb,
+#editIconModal .card:not(:hover):not(.scrolling)::-webkit-scrollbar-thumb,
+.suggestions:not(:hover):not(.scrolling)::-webkit-scrollbar-thumb {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Also ensure the corner area is transparent when hidden */
+#board:not(:hover):not(.scrolling)::-webkit-scrollbar-corner,
+#modal .card:not(:hover):not(.scrolling)::-webkit-scrollbar-corner,
+.settings-card:not(:hover):not(.scrolling)::-webkit-scrollbar-corner,
+.suggestions:not(:hover):not(.scrolling)::-webkit-scrollbar-corner {
+  background: transparent !important;
 }

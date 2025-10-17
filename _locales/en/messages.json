@@ -139,5 +139,8 @@
   },
   "backgroundClear": {
     "message": "Clear"
+  },
+  "focusSearchOnLoad": {
+    "message": "Focus search box on new tab"
   }
 }

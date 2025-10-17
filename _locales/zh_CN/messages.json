@@ -139,5 +139,8 @@
   },
   "backgroundClear": {
     "message": "清除"
+  },
+  "focusSearchOnLoad": {
+    "message": "新标签页默认聚焦搜索框"
   }
 }

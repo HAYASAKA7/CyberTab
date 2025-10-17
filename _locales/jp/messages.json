@@ -139,5 +139,8 @@
   },
   "backgroundClear": {
     "message": "クリア"
+  },
+  "focusSearchOnLoad": {
+    "message": "新しいタブで検索ボックスにフォーカス"
   }
 }

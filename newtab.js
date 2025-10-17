@@ -28,6 +28,26 @@ let bookmarkSyncCount = 5; // how many bookmarks to import/sync from bookmarks b
 let backgroundImage = ""; // background image data URL
 let contextMenu = null; // reference to context menu element
 
+// Dynamic layout state (computed at runtime based on board width)
+let currentMaxCols = 11;
+let currentLeftOffset = SIDE_MARGIN;
+
+// Compute columns and left offset so tiles auto-wrap and keep horizontal margins.
+function computeLayout() {
+  const board = document.getElementById("board");
+  const bw = board ? Math.max(0, board.clientWidth) : window.innerWidth;
+  const minEdge = 64; // minimum empty space at each side (adjustable)
+  const usable = Math.max(0, bw - minEdge * 2);
+  // GRID includes tile + gap; ensure at least one column
+  const cols = Math.max(1, Math.floor(usable / GRID));
+  // Cap to a sensible maximum (previously 11)
+  currentMaxCols = Math.max(1, Math.min(11, cols));
+  // Center the grid within the board while ensuring at least minEdge on each side
+  const totalGridWidth = currentMaxCols * GRID;
+  const centeredLeft = Math.round((bw - totalGridWidth) / 2);
+  currentLeftOffset = Math.max(minEdge, centeredLeft);
+}
+
 function uid(){
   return (crypto && crypto.randomUUID) ? crypto.randomUUID() : Math.random().toString(36).slice(2,9);
 }
@@ -111,15 +131,16 @@ function renderAll(){
 
 // Calculate grid position from col/row
 function getPosition(col, row) {
-  return {
-    left: col * GRID + SIDE_MARGIN,
-    top: row * GRID + TOP_OFFSET
-  };
+  // use computed left offset so the grid is centered with side gutters
+  const left = currentLeftOffset + col * GRID;
+  const top = TOP_OFFSET + row * GRID;
+  return { left, top };
 }
 
 // Calculate col/row from pixel position
 function getGridPosition(left, top) {
-  const col = Math.round((left - SIDE_MARGIN) / GRID);
+  // Translate pixel left into grid col using currentLeftOffset
+  const col = Math.round((left - currentLeftOffset) / GRID);
   const row = Math.round((top - TOP_OFFSET) / GRID);
   return {
     col: Math.max(0, col),
@@ -402,11 +423,11 @@ function makeTile(it) {
       
       if (autoAlign) {
         // Insert logic: move the dragged tile to the target position and shift subsequent tiles
-        const maxCols = 11;
-        const targetIndex = gridPos.row * maxCols + gridPos.col;
+        computeLayout();
+        const targetIndex = gridPos.row * currentMaxCols + gridPos.col;
         
         // Sort items by their current grid index
-        items.sort((a, b) => (a.row * maxCols + a.col) - (b.row * maxCols + b.col));
+        items.sort((a, b) => (a.row * currentMaxCols + a.col) - (b.row * currentMaxCols + b.col));
         
         // Remove the dragged item from its current position
         const currentIndex = items.indexOf(it);
@@ -423,7 +444,7 @@ function makeTile(it) {
           item.col = col;
           item.row = row;
           col++;
-          if (col >= maxCols) {
+          if (col >= currentMaxCols) {
             col = 0;
             row++;
           }
@@ -434,9 +455,8 @@ function makeTile(it) {
         // and shift that tile and subsequent tiles one position forward.
         const targetTile = items.find(t => t.col === gridPos.col && t.row === gridPos.row && t.id !== el.dataset.id);
         if (targetTile) {
-          const maxCols = 11;
           // Create a row-major sorted list
-          const sorted = items.slice().sort((a,b) => (a.row*maxCols + a.col) - (b.row*maxCols + b.col));
+          const sorted = items.slice().sort((a,b) => (a.row*currentMaxCols + a.col) - (b.row*currentMaxCols + b.col));
 
           // Find index of target in sorted list
           const targetIndex = sorted.findIndex(s => s.id === targetTile.id);
@@ -460,7 +480,7 @@ function makeTile(it) {
               elTile.style.top = pos.top + "px";
             }
             col++;
-            if (col >= maxCols) { col = 0; row++; }
+            if (col >= currentMaxCols) { col = 0; row++; }
           }
 
           // Replace items array with the newly ordered list
@@ -646,6 +666,59 @@ function hideContextMenu() {
   }
 }
 
+/* Scrollbar behavior: show compact thumb while user scrolls (wheel/touch),
+   show full neon scrollbar when pointer is over the region, hide otherwise.
+   The JS toggles '.scrolling' class during active wheel/touch scroll and removes it after timeout.
+*/
+function setupScrollbars() {
+  const selectors = [
+    document.getElementById('board'),
+    document.querySelector('#modal .card'),
+    document.querySelector('#settingsModal .card'),
+    document.querySelector('#editIconModal .card')
+  ].filter(Boolean);
+
+  selectors.forEach(el => {
+    // Ensure overflow styling exists (CSS handles max-height/overflow)
+    el.style.webkitOverflowScrolling = 'touch';
+
+    let scrollTimer = null;
+    const SCROLL_CLASS = 'scrolling';
+    const SCROLL_TIMEOUT = 700; // ms to keep compact thumb visible after last wheel/touch
+
+    const onUserScroll = () => {
+      // add 'scrolling' so compact thumb shows even if not hovered
+      el.classList.add(SCROLL_CLASS);
+      if (scrollTimer) clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(() => {
+        el.classList.remove(SCROLL_CLASS);
+      }, SCROLL_TIMEOUT);
+    };
+
+    // Wheel, touchmove make scrollbar visible in compact mode
+    el.addEventListener('wheel', onUserScroll, { passive: true });
+    el.addEventListener('touchmove', onUserScroll, { passive: true });
+
+    // Also when keyboard arrows/page keys scroll the element
+    el.addEventListener('keydown', (e) => {
+      const keys = ['ArrowDown','ArrowUp','PageDown','PageUp','Home','End'];
+      if (keys.includes(e.key)) onUserScroll();
+    });
+
+    // When pointer enters, remove any lingering 'scrolling' (hover shows full scrollbar by CSS)
+    el.addEventListener('pointerenter', () => {
+      if (scrollTimer) { clearTimeout(scrollTimer); scrollTimer = null; }
+      el.classList.remove(SCROLL_CLASS);
+    });
+    // When pointer leaves, ensure compact hides after timeout if no wheel
+    el.addEventListener('pointerleave', () => {
+      if (scrollTimer) clearTimeout(scrollTimer);
+      // small delay to avoid jarring hide
+      scrollTimer = setTimeout(() => el.classList.remove(SCROLL_CLASS), 120);
+    });
+  });
+}
+
 // generate initials like "YT" from url/name, use user-provided icon if it looks like emoji/char
 function generateIconText(url, name, providedIcon){
   const hasIcon = (providedIcon || "").trim();
@@ -724,6 +797,125 @@ function performSearch(query) {
   
   window.open(searchUrl, "_blank");
 }
+
+// --- Third-party suggestions (Google Suggest) ---
+// Debounce helper
+function debounce(fn, wait) {
+  let t = null;
+  return function(...args) {
+    clearTimeout(t);
+    t = setTimeout(() => fn.apply(this, args), wait);
+  };
+}
+
+  // Fetch suggestions from Google Suggest API (no local history used)
+async function fetchThirdPartySuggestions(query) {
+  if (!query || !query.trim()) return [];
+  const q = encodeURIComponent(query.trim());
+  const url = `https://ac.duckduckgo.com/ac/?q=${q}&type=list`;
+
+  try {
+    // Proxy the request to the background service worker to avoid CORS issues.
+    const resp = await new Promise(resolve => {
+      chrome.runtime.sendMessage({ type: 'fetchSuggestions', url }, resolve);
+    });
+
+    if (!resp || !resp.ok) return [];
+
+    let data = resp.data;
+    if (typeof data === 'string') {
+      try {
+        data = JSON.parse(data);
+      } catch (e) {
+      }
+    }
+    if (Array.isArray(data)) {
+      const suggestions = data
+        .map(item => (typeof item === 'string' ? item : (item.phrase || item.value || "")))
+        .filter(Boolean);
+      return suggestions.slice(0, 8);
+    }
+
+    return [];
+  } catch (e) {
+    return [];
+  }
+}
+
+
+// UI functions for suggestions
+async function updateSuggestionsFromRemote(query) {
+  const box = document.getElementById("suggestions");
+  if (!box) return;
+  const q = (query || "").trim();
+  if (!q) {
+    box.style.display = "none";
+    box.setAttribute("aria-hidden", "true");
+    return;
+  }
+
+  const results = await fetchThirdPartySuggestions(q);
+  if (!results || results.length === 0) {
+    box.style.display = "none";
+    box.setAttribute("aria-hidden", "true");
+    return;
+  }
+
+  box.innerHTML = "";
+  results.forEach((s, idx) => {
+    const div = document.createElement("div");
+    div.className = "suggestion-item";
+    div.setAttribute("role", "option");
+    div.dataset.index = idx;
+    div.innerHTML = `<span class="suggest-text">${escapeHtml(s)}</span>`;
+    div.addEventListener("click", () => {
+      const input = document.getElementById("searchInput");
+      if (input) input.value = s;
+      box.style.display = "none";
+      box.setAttribute("aria-hidden", "true");
+      // record no history; directly perform search using existing [`performSearch`](newtab.js)
+      performSearch(s);
+    });
+    box.appendChild(div);
+  });
+  box.style.display = "block";
+  box.setAttribute("aria-hidden", "false");
+  box.dataset.activeIndex = "-1";
+}
+
+function moveSuggestion(delta) {
+  const box = document.getElementById("suggestions");
+  if (!box || box.style.display === "none") return;
+  const itemsEls = Array.from(box.querySelectorAll(".suggestion-item"));
+  if (!itemsEls.length) return;
+  let idx = parseInt(box.dataset.activeIndex || "-1", 10);
+  idx = Math.max(-1, Math.min(itemsEls.length - 1, idx + delta));
+  itemsEls.forEach(el => el.classList.remove("active"));
+  if (idx >= 0) {
+    itemsEls[idx].classList.add("active");
+    itemsEls[idx].scrollIntoView({ block: "nearest" });
+    box.dataset.activeIndex = String(idx);
+    // reflect in input field for preview (but do not persist)
+    const input = document.getElementById("searchInput");
+    if (input) input.value = itemsEls[idx].querySelector('.suggest-text').textContent;
+  } else {
+    box.dataset.activeIndex = "-1";
+  }
+}
+
+function acceptActiveSuggestion() {
+  const box = document.getElementById("suggestions");
+  if (!box || box.style.display === "none") return false;
+  const idx = parseInt(box.dataset.activeIndex || "-1", 10);
+  const itemsEls = Array.from(box.querySelectorAll(".suggestion-item"));
+  if (idx >= 0 && itemsEls[idx]) {
+    itemsEls[idx].click();
+    return true;
+  }
+  return false;
+}
+
+const debouncedRemoteSuggestions = debounce(updateSuggestionsFromRemote, 180);
 
 // Language functions
 function getEffectiveLocale() {
@@ -815,7 +1007,18 @@ function closeSidebar() {
 document.addEventListener("DOMContentLoaded", async () => {
   // Load saved items, engine, and language, then localize
   await load();
+  // compute initial layout and position tiles
+  computeLayout();
+  renderAll();
+  // Recompute layout on resize and reflow tiles
+  window.addEventListener('resize', () => {
+    computeLayout();
+    renderAll();
+  });
   
+  // Initialize custom scrollbar behavior
+  setupScrollbars();
+
   // Set language select value after loading
   const languageSelect = document.getElementById("languageSelect");
   if (languageSelect) {
@@ -826,6 +1029,86 @@ document.addEventListener("DOMContentLoaded", async () => {
   const bookmarkSyncInput = document.getElementById("bookmarkSyncCount");
   if (bookmarkSyncInput) {
     bookmarkSyncInput.value = bookmarkSyncCount;
+  }
+
+  //  Set focus to search input (not available now)
+  const searchInput = document.getElementById("searchInput");
+  const suggestionsBox = document.getElementById("suggestions");
+  const clearBtn = document.getElementById("clearSearch");
+
+  // Clear-button behavior: show when mouse is over input or input is focused/non-empty
+  if (searchInput && clearBtn) {
+    const searchFormEl = document.getElementById("searchForm") || document.querySelector(".search-box");
+    //const showClear = () => clearBtn.classList.add("visible");
+    // Only show clear button when input contains non-empty text
+    const showClear = () => {
+      if (!searchInput) return;
+      if (String(searchInput.value || "").trim().length > 0) {
+        clearBtn.classList.add("visible");
+      }
+    };
+    const hideClearIfEmpty = () => {
+      if (!searchInput.value && document.activeElement !== searchInput) clearBtn.classList.remove("visible");
+    };
+
+    // Use pointerenter/pointerleave on the whole search form so moving between input and clearBtn
+    // does not trigger a temporary hide.
+    if (searchFormEl) {
+      searchFormEl.addEventListener("pointerenter", showClear);
+      searchFormEl.addEventListener("pointerleave", () => setTimeout(hideClearIfEmpty, 120));
+    }
+
+    // Also ensure clear button keeps the visible state while hovered
+    clearBtn.addEventListener("pointerenter", showClear);
+    clearBtn.addEventListener("pointerleave", () => setTimeout(hideClearIfEmpty, 120));
+
+    // Focus/input behavior
+    searchInput.addEventListener("focus", showClear);
+    searchInput.addEventListener("blur", () => setTimeout(hideClearIfEmpty, 120));
+    searchInput.addEventListener("input", () => {
+      if (searchInput.value) showClear();
+      else if (document.activeElement !== searchInput) clearBtn.classList.remove("visible");
+    });
+
+    // click to clear (hide suggestions and focus back)
+    clearBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      searchInput.value = "";
+      if (suggestionsBox) { suggestionsBox.style.display = "none"; suggestionsBox.setAttribute("aria-hidden","true"); }
+      clearBtn.classList.remove("visible");
+      searchInput.focus();
+      // trigger input listeners to update state (e.g., suggestion fetch)
+      const ev = new Event('input', { bubbles: true });
+      searchInput.dispatchEvent(ev);
+    });
+  }
+
+  // Wire third-party suggestion behavior (no local history used)
+  if (searchInput) {
+    searchInput.addEventListener("input", (e) => {
+      const v = e.target.value || "";
+      debouncedRemoteSuggestions(v);
+    });
+    searchInput.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        moveSuggestion(1);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        moveSuggestion(-1);
+      } else if (e.key === "Enter") {
+        // If a suggestion is active, accept it; otherwise let form submit handler run
+        const accepted = acceptActiveSuggestion();
+        if (accepted) e.preventDefault();
+      } else if (e.key === "Escape") {
+        if (suggestionsBox) { suggestionsBox.style.display = "none"; suggestionsBox.setAttribute("aria-hidden","true"); }
+      }
+    });
+    searchInput.addEventListener("blur", () => {
+      setTimeout(() => {
+        if (suggestionsBox) { suggestionsBox.style.display = "none"; suggestionsBox.setAttribute("aria-hidden","true"); }
+      }, 150);
+    });
   }
 
   // Background UI wiring
@@ -900,9 +1183,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Search functionality
   searchForm.addEventListener("submit", e => {
     e.preventDefault();
-    performSearch(searchInput.value);
-    searchInput.value = "";
-    searchInput.blur();
+    const q = (searchInput || {}).value || "";
+    if (!q.trim()) return;
+    // Directly perform search against external engine; do not record local history
+    performSearch(q);
+    if (searchInput) { searchInput.value = ""; searchInput.blur(); }
+    if (suggestionsBox) { suggestionsBox.style.display = "none"; suggestionsBox.setAttribute("aria-hidden","true"); }
   });
 
   engineToggle.addEventListener("click", () => {
@@ -1113,10 +1399,7 @@ async function loadBookmarks(limit = bookmarkSyncCount) {
         let col = 0, row = 0;
         while (isPositionOccupied(col, row)) {
           col++;
-          if (col > 10) { // Max 11 items per row
-            col = 0;
-            row++;
-          }
+          if (col > 10) { col = 0; row++; }
         }
 
         items.push({
@@ -1273,9 +1556,8 @@ document.getElementById("editIconCancel").addEventListener("click", () => {
 
 function autoAlignTiles() {
   if (!autoAlign) return;
-
-  const maxCols = 11;
-  items.sort((a, b) => (a.row * maxCols + a.col) - (b.row * maxCols + b.col));
+  computeLayout();
+  items.sort((a, b) => (a.row * currentMaxCols + a.col) - (b.row * currentMaxCols + b.col));
 
   let col = 0, row = 0;
   for (const it of items) {
@@ -1289,7 +1571,7 @@ function autoAlignTiles() {
       el.style.top = pos.top + "px";
     }
     col++;
-    if (col >= maxCols) { col = 0; row++; }
+    if (col >= currentMaxCols) { col = 0; row++; }
   }
 
   save();
