@@ -770,54 +770,108 @@ input::placeholder{
   top: calc(100% + 10px);
   max-width:680px;
   margin:0 auto;
-  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(0,0,0,0.16));
-  border:1px solid rgba(0,240,255,0.12);
-  border-radius:12px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(0,0,0,0.2));
+  border:1px solid rgba(0,240,255,0.18);
+  border-radius:14px;
   box-shadow:
-    0 20px 50px rgba(0,0,0,0.7),
-    0 0 30px rgba(0,240,255,0.04) inset;
-  backdrop-filter: blur(8px) saturate(110%);
+    0 12px 36px rgba(0,0,0,0.85),
+    0 0 28px rgba(0,240,255,0.06) inset,
+    0 4px 16px rgba(0,240,255,0.08);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
   z-index:500;
-  overflow:hidden;
-  max-height:320px;
   overflow-y:auto;
+  max-height:320px;
   color:#e6f6ff;
   font-weight:600;
   display:none;
+  transition: opacity .2s ease, transform .2s ease;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0,240,255,0.25) transparent;
 }
 
-/* Each suggestion row */
+.suggestions[style*="display: block"] {
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.suggestions::-webkit-scrollbar {
+  width: 6px;
+}
+
+.suggestions::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 3px;
+}
+
+.suggestions::-webkit-scrollbar-thumb {
+  background: rgba(0,240,255,0.25);
+  border-radius: 3px;
+  border: 1px solid transparent;
+  background-clip: padding-box;
+  transition: background .2s ease;
+}
+
+.suggestions::-webkit-scrollbar-thumb:hover {
+  background: rgba(0,240,255,0.4);
+  background-clip: padding-box;
+}
+
 .suggestion-item{
-  padding:10px 14px;
+  padding:12px 20px;
   display:flex;
   align-items:center;
   gap:12px;
   cursor:pointer;
-  color:#bff7ff;
-  font-size:14px;
-  border-bottom:1px solid rgba(255,255,255,0.02);
-  transition:background .12s, color .12s, transform .08s;
+  color:#e6f6ff;
+  font-size:15px;
+  font-weight:500;
+  border-bottom:1px solid rgba(0,240,255,0.1);
+  transition:background .15s ease, color .15s ease, transform .08s ease;
+  font-family:inherit;
+  position: relative;
+  background: rgba(5,10,18,0.3);
 }
 
-.suggestion-item:last-child { border-bottom: none; }
+.suggestion-item:first-child {
+  border-radius: 14px 14px 0 0;
+}
+
+.suggestion-item:last-child { 
+  border-bottom: none;
+  border-radius: 0 0 14px 14px;
+}
 
 .suggestion-item:hover,
 .suggestion-item.active{
-  background: rgba(255,45,149,0.06);
-  color: var(--neon-pink);
-  transform: translateY(-1px);
+  background: linear-gradient(90deg, rgba(0,240,255,0.15), rgba(0,200,220,0.12));
+  color: var(--neon-cyan);
+  transform: translateX(2px);
+  border-color: rgba(0,240,255,0.12);
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(8px) saturate(160%);
 }
 
-/* small hint / secondary text (e.g., url) */
-.suggestion-sub{
-  font-size:12px;
-  color:var(--muted);
-  font-weight:500;
-  margin-left:auto;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  max-width:40%;
+.suggestion-item::before {
+  content: "💡";
+  font-size: 14px;
+  opacity: 0.5;
+  transition: opacity .15s ease;
+}
+
+.suggestion-item:hover::before,
+.suggestion-item.active::before {
+  opacity: 0.8;
 }
 
 /* Responsive */
@@ -925,6 +979,23 @@ input::placeholder{
     left:5%;
     right:5%;
     top: calc(100% + 8px);
+    border-radius: 12px;
+    background: linear-gradient(180deg, rgba(10,15,25,0.94), rgba(5,8,15,0.96));
+    backdrop-filter: blur(16px) saturate(150%);
+    -webkit-backdrop-filter: blur(18px) saturate(145%);
+  }
+  
+  .suggestion-item{
+    padding:10px 16px;
+    font-size:14px;
+  }
+  
+  .suggestion-item:first-child {
+    border-radius: 12px 12px 0 0;
+  }
+  
+  .suggestion-item:last-child {
+    border-radius: 0 0 12px 12px;
   }
 }
 

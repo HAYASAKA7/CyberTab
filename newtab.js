@@ -852,32 +852,119 @@ function debounce(fn, wait) {
 async function fetchThirdPartySuggestions(query) {
   if (!query || !query.trim()) return [];
   const q = encodeURIComponent(query.trim());
-  const url = `https://ac.duckduckgo.com/ac/?q=${q}&type=list`;
-
+  
   try {
-    // Proxy the request to the background service worker to avoid CORS issues.
-    const resp = await new Promise(resolve => {
-      chrome.runtime.sendMessage({ type: 'fetchSuggestions', url }, resolve);
-    });
+    // 1. DuckDuckGo
+    try {
+      const url = `https://ac.duckduckgo.com/ac/?q=${q}&type=list`;
+      const resp = await new Promise(resolve => {
+        chrome.runtime.sendMessage({ type: 'fetchSuggestions', url }, resolve);
+      });
 
-    if (!resp || !resp.ok) return [];
-
-    let data = resp.data;
-    if (typeof data === 'string') {
-      try {
-        data = JSON.parse(data);
-      } catch (e) {
+      if (resp && resp.ok && resp.data) {
+        let data = resp.data;
+        console.log("DuckDuckGo raw response:", data);
+        if (typeof data === 'string') {
+          try {
+            data = JSON.parse(data);
+          } catch (e) {
+            data = data.split('\n').filter(Boolean);
+          }
+        }
+        
+        if (Array.isArray(data)) {
+          let suggestions = [];
+          
+          if (data.length >= 2 && Array.isArray(data[1])) {
+            suggestions = data[1];
+          } 
+          else {
+            suggestions = data;
+          }
+          
+          const filtered = suggestions
+            .map(item => {
+              if (typeof item === 'string') {
+                return item.trim();
+              } else if (item && typeof item === 'object') {
+                return (item.phrase || item.value || item.text || "").trim();
+              }
+              return "";
+            })
+            .filter(s => s && s.length > 0 && s !== query);
+          
+          if (filtered.length > 0) {
+            return filtered.slice(0, 8);
+          }
+        }
       }
+    } catch (e) {
+      console.debug("DuckDuckGo suggestions failed:", e);
     }
-    if (Array.isArray(data)) {
-      const suggestions = data
-        .map(item => (typeof item === 'string' ? item : (item.phrase || item.value || "")))
-        .filter(Boolean);
-      return suggestions.slice(0, 8);
+
+    // 2. Use Google Suggest as fallback
+    try {
+      const url = `https://suggestqueries.google.com/complete/search?client=chrome&q=${q}`;
+      const resp = await new Promise(resolve => {
+        chrome.runtime.sendMessage({ type: 'fetchSuggestions', url }, resolve);
+      });
+
+      if (resp && resp.ok && resp.data) {
+        let data = resp.data;
+        if (typeof data === 'string') {
+          try {
+            data = JSON.parse(data);
+          } catch (e) {
+            return [];
+          }
+        }
+        
+        if (Array.isArray(data) && data.length >= 2 && Array.isArray(data[1])) {
+          const suggestions = data[1]
+            .map(s => (typeof s === 'string' ? s.trim() : ""))
+            .filter(s => s && s !== query);
+          
+          return suggestions.slice(0, 8);
+        }
+      }
+    } catch (e) {
+      console.debug("Google suggestions failed:", e);
+    }
+
+    // 3. Bing Suggestions
+    try {
+      const url = `https://api.bing.com/qsonhs.aspx?q=${q}`;
+      const resp = await new Promise(resolve => {
+        chrome.runtime.sendMessage({ type: 'fetchSuggestions', url }, resolve);
+      });
+
+      if (resp && resp.ok && resp.data) {
+        let data = resp.data;
+        if (typeof data === 'string') {
+          try {
+            data = JSON.parse(data);
+          } catch (e) {
+            return [];
+          }
+        }
+        
+        if (data && data.AS && data.AS.Results && Array.isArray(data.AS.Results)) {
+          const suggestions = data.AS.Results
+            .map(item => (item.Txt || "").trim())
+            .filter(s => s && s !== query);
+          
+          if (suggestions.length > 0) {
+            return suggestions.slice(0, 8);
+          }
+        }
+      }
+    } catch (e) {
+      console.debug("Bing suggestions failed:", e);
     }
 
     return [];
   } catch (e) {
+    console.debug("fetchThirdPartySuggestions error:", e);
     return [];
   }
 }
@@ -1175,6 +1262,17 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (suggestionsBox) { suggestionsBox.style.display = "none"; suggestionsBox.setAttribute("aria-hidden","true"); }
       }, 150);
     });
+  }
+
+  const searchContainer = document.querySelector(".search-container");
+  if (searchContainer) {
+    searchContainer.style.position = "relative";
+    searchContainer.style.zIndex = "90";
+  }
+
+  const searchBox = document.querySelector(".search-box");
+  if (searchBox) {
+    searchBox.style.position = "relative";
   }
 
   // Background UI wiring
