@@ -1,14 +1,4 @@
-// Minimal CyberWeTab new-tab extension logic.
-// - draggable tiles that snap to grid (Windows desktop style)
-// - auto-generated letter icons from URL/name
-// - persistent storage via chrome.storage.sync
-// - search box with Bing/Google toggle
-// - right-click context menu for delete
-// - internationalization support
-// - collapsible sidebar menu
-// - manual language settings
-// - export/import settings
-
+// CyberTab new tab page script
 const GRID = 140; // snap grid (tile width + gap)
 const SIDE_MARGIN = 32 * 8; // left/right margin
 const TOP_OFFSET = 32; // top offset
@@ -119,7 +109,6 @@ function applyBackground(src) {
     backgroundImage = "";
     return;
   }
-  // Use CSS url(...) and ensure proper quoting for data URLs
   const escaped = src.replace(/"/g, '\\"');
   document.documentElement.style.setProperty('--custom-bg-image', `url("${escaped}") center/cover no-repeat`);
   backgroundImage = src;
@@ -149,7 +138,6 @@ function getPosition(col, row) {
 
 // Calculate col/row from pixel position
 function getGridPosition(left, top) {
-  // Translate pixel left into grid col using currentLeftOffset
   const col = Math.round((left - currentLeftOffset) / GRID);
   const row = Math.round((top - TOP_OFFSET) / GRID);
   return {
@@ -201,7 +189,7 @@ async function fetchFavicon(url) {
     const isOpera = ua.includes("OPR/");
     const isChrome = ua.includes("Chrome") && !isEdge && !isOpera;
 
-    // 1) chrome://favicon only on real Chrome (closest to bookmarks)
+    // 1) chrome
     if (isChrome) {
       try {
         const chromeFav = `chrome://favicon/128/${encodeURIComponent(url)}`;
@@ -212,7 +200,7 @@ async function fetchFavicon(url) {
       }
     }
 
-    // 2) Reliable third-party services (fast, no CORS)
+    // 2) Reliable third-party services
     const thirdParty = [
       `https://www.google.com/s2/favicons?domain=${host}&sz=128`,
       `https://icons.duckduckgo.com/ip3/${host}.ico`
@@ -237,7 +225,7 @@ async function fetchFavicon(url) {
       } catch (e) { /* try next */ }
     }
 
-    // 4) Best-effort: fetch page and parse link/manifest (may fail due to CORS)
+    // 4) Fetch page and parse link/manifest
     try {
       const resp = await fetch(baseUrl, { method: "GET", mode: "cors" });
       if (resp.ok) {
@@ -340,7 +328,7 @@ function makeTile(it) {
 
   const iconEl = el.querySelector(".icon");
   if (it.icon && (it.icon.startsWith('http') || it.icon.startsWith('data:'))) {
-    // Use provided icon (favicon URL or local data URL)
+    // Use provided icon
     iconEl.innerHTML = "";
     iconEl.style.background = "transparent";
     iconEl.style.color = "transparent";
@@ -460,9 +448,7 @@ function makeTile(it) {
           }
         });
       } else {
-        // Insert-with-shift behavior (like mobile app icon move):
-        // If dropping onto an occupied tile, insert the dragged item at that tile's index
-        // and shift that tile and subsequent tiles one position forward.
+        // Insert-with-shift behavior
         const targetTile = items.find(t => t.col === gridPos.col && t.row === gridPos.row && t.id !== el.dataset.id);
         if (targetTile) {
           // Create a row-major sorted list
@@ -511,7 +497,7 @@ function makeTile(it) {
       // Update storage
       save();
       
-      // Auto-align if enabled (compact the layout)
+      // Auto-align if enabled
       autoAlignTiles();
     } else {
       el.style.transition = "";
@@ -654,7 +640,7 @@ function showBoardContextMenu(x, y) {
     hideContextMenu();
   });
   
-  // Close on click outside (prevents premature hiding)
+  // Close on click outside
   setTimeout(() => {
     const closeHandler = (e) => {
       if (!menu.contains(e.target)) {
@@ -677,10 +663,7 @@ function hideContextMenu() {
   }
 }
 
-/* Scrollbar behavior: show compact thumb while user scrolls (wheel/touch),
-   show full neon scrollbar when pointer is over the region, hide otherwise.
-   The JS toggles '.scrolling' class during active wheel/touch scroll and removes it after timeout.
-*/
+// Scrollbar behavior
 function setupScrollbars() {
   const selectors = [
     document.getElementById('board'),
@@ -690,7 +673,7 @@ function setupScrollbars() {
   ].filter(Boolean);
 
   selectors.forEach(el => {
-    // Ensure overflow styling exists (CSS handles max-height/overflow)
+    // Ensure overflow styling exists
     el.style.webkitOverflowScrolling = 'touch';
 
     let scrollTimer = null;
@@ -716,7 +699,7 @@ function setupScrollbars() {
       if (keys.includes(e.key)) onUserScroll();
     });
 
-    // When pointer enters, remove any lingering 'scrolling' (hover shows full scrollbar by CSS)
+    // When pointer enters, remove any lingering 'scrolling'
     el.addEventListener('pointerenter', () => {
       if (scrollTimer) { clearTimeout(scrollTimer); scrollTimer = null; }
       el.classList.remove(SCROLL_CLASS);
@@ -730,7 +713,7 @@ function setupScrollbars() {
   });
 }
 
-// generate initials like "YT" from url/name, use user-provided icon if it looks like emoji/char
+// generate initials
 function generateIconText(url, name, providedIcon){
   const hasIcon = (providedIcon || "").trim();
   if (hasIcon && /[^\w\s]/u.test(hasIcon)) return hasIcon.slice(0,2);
@@ -809,7 +792,7 @@ function performSearch(query) {
   window.open(searchUrl, "_blank");
 }
 
-// --- Third-party suggestions (Google Suggest) ---
+// --- Third-party suggestions ---
 // Debounce helper
 function debounce(fn, wait) {
   let t = null;
@@ -819,7 +802,7 @@ function debounce(fn, wait) {
   };
 }
 
-  // Fetch suggestions from Google Suggest API (no local history used)
+  // Fetch suggestions from Google Suggest API
 async function fetchThirdPartySuggestions(query) {
   if (!query || !query.trim()) return [];
   const q = encodeURIComponent(query.trim());
@@ -945,7 +928,7 @@ function setLanguage(lang) {
 
 // Internationalization helper
 async function localizePage() {
-  // Load messages.json for a specific locale (returns map key->message or null)
+  // Load messages.json for a specific locale
   async function loadMessagesForLocale(locale) {
     try {
       const url = chrome.runtime.getURL(`_locales/${locale}/messages.json`);
@@ -1155,7 +1138,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const backgroundFileName = document.getElementById("backgroundFileName");
   const backgroundClear = document.getElementById("backgroundClear");
 
-  // pendingBackground holds the staged value (data URL or URL string)
+  // pendingBackground holds the staged value
   let pendingBackground = backgroundImage || "";
 
   // initialize preview and inputs
@@ -1277,7 +1260,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     e.preventDefault();
     const name = document.getElementById("favName").value.trim();
     let url = document.getElementById("favURL").value.trim();
-    // No manual emoji/char input anymore.
     const localIconFile = document.getElementById("favLocalIcon").files[0];
     
     if (!/^https?:\/\//.test(url)) url = "https://" + url;
@@ -1377,7 +1359,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Hide context menu when clicking anywhere
   document.addEventListener("contextmenu", (e) => {
-    // Ignore right-clicks that originate from tiles, the board (handled separately),
+    // Ignore right-clicks that originate from tiles, the board,
     // or the context menu itself so the menu doesn't immediately hide after being shown.
     if (e.target.closest(".context-menu")) return;
     if (e.target.closest(".tile")) return;
