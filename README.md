@@ -16,6 +16,9 @@ A lightweight, privacy-friendly Chrome new tab extension with a cyberpunk theme.
 - __Supported system languages: English, Simplified Chinese, Japanese.__
 - Sync top bookmarks into the grid and keep them in sync, you can customize the amount of bookmarks synced in settings.
 - Custom background image and export/import settings.
+- Tab key can quickly switch search engines.
+- Right-click context menu for tiles (edit icon, delete).
+- Right-click context menu for adding new tiles or switch on/off auto-align.
 
 ## Important files
 
