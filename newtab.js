@@ -9,6 +9,7 @@ const LANGUAGE_KEY = "cyber_tab_language";
 const AUTO_ALIGN_KEY = "cyber_tab_auto_align";
 const BOOKMARK_SYNC_COUNT_KEY = "cyber_tab_bookmark_sync_count";
 const BACKGROUND_KEY = "cyber_tab_background_image";
+const LOCAL_ICONS_KEY = "cyber_tab_local_icons";
 
 let items = []; // saved tiles: {id,name,url,col,row,icon,bookmarkId?}
 let currentEngine = "bing"; // "google" or "bing"
@@ -48,7 +49,25 @@ function extensionAsset(name) {
 }
 
 function save() {
-  chrome.storage.sync.set({ [STORAGE_KEY]: items });
+  const itemsForSync = items.map(it => ({
+    ...it,
+    icon: (it.icon && it.icon.startsWith('data:')) ? '' : it.icon
+  }));
+
+  // Use local storage for local images and icons
+  const localIcons = {};
+  items.forEach(it => {
+    if (it.icon && it.icon.startsWith('data:')) {
+      localIcons[it.id] = it.icon;
+    }
+  });
+  
+  chrome.storage.sync.set({ [STORAGE_KEY]: itemsForSync });
+  if (Object.keys(localIcons).length > 0) {
+    chrome.storage.local.set({ [LOCAL_ICONS_KEY]: localIcons });
+  }else{
+    chrome.storage.local.remove([LOCAL_ICONS_KEY]);
+  }
 }
 
 function saveEngine() {
@@ -67,7 +86,16 @@ function saveBookmarkSyncCount() {
 }
 
 function saveBackground() {
-  chrome.storage.sync.set({ [BACKGROUND_KEY]: backgroundImage });
+  if (backgroundImage && backgroundImage.startsWith('data:')) {
+    chrome.storage.local.set({ [BACKGROUND_KEY]: backgroundImage });
+    chrome.storage.sync.set({ [BACKGROUND_KEY]: "" });
+  } else if (backgroundImage) {
+    chrome.storage.sync.set({ [BACKGROUND_KEY]: backgroundImage });
+    chrome.storage.local.set({ [BACKGROUND_KEY]: "" });
+  } else {
+    chrome.storage.sync.set({ [BACKGROUND_KEY]: "" });
+    chrome.storage.local.set({ [BACKGROUND_KEY]: "" });
+  }
 }
 
 function load() {
@@ -80,16 +108,34 @@ function load() {
       bookmarkSyncCount = (typeof res[BOOKMARK_SYNC_COUNT_KEY] !== "undefined") ? res[BOOKMARK_SYNC_COUNT_KEY] : 5;
       backgroundImage = res[BACKGROUND_KEY] || "";
 
-      await loadBookmarks(bookmarkSyncCount); // Load bookmarks after loading stored items
-      setupBookmarkSyncListeners(); // start syncing browser bookmarks -> extension items
-      renderAll();
-      applyBackground(backgroundImage);
-      updateEngineUI();
-      await localizePage(); // Localize after loading settings
-      resolve();
+      chrome.storage.local.get([LOCAL_ICONS_KEY, BACKGROUND_KEY], localRes => {
+        const localIcons = localRes[LOCAL_ICONS_KEY] || {};
+        
+        items.forEach(it => {
+          if (localIcons[it.id]) {
+            it.icon = localIcons[it.id];
+          }
+        });
 
-      // Kick off background favicon fetch for items without icons
-      fetchMissingFavicons();
+        if (localRes[BACKGROUND_KEY] && localRes[BACKGROUND_KEY].trim() !== "") {
+          backgroundImage = localRes[BACKGROUND_KEY];
+        } else if (backgroundImage && backgroundImage.trim() === "") {
+          backgroundImage = localRes[BACKGROUND_KEY] || "";
+        }
+
+        (async () => {
+          await loadBookmarks(bookmarkSyncCount); // Load bookmarks after loading stored items
+          setupBookmarkSyncListeners(); // start syncing browser bookmarks -> extension items
+          renderAll();
+          applyBackground(backgroundImage);
+          updateEngineUI();
+          await localizePage(); // Localize after loading settings
+          resolve();
+
+          // Kick off background favicon fetch for items without icons
+          fetchMissingFavicons();
+        })();
+      });
     });
   });
 }
@@ -1319,9 +1365,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   settingsApply.addEventListener("click", async () => {
-    const selectedLang = languageSelect.value;
-    setLanguage(selectedLang);
-
     // Read and persist bookmark sync count
     const input = document.getElementById("bookmarkSyncCount");
     if (input) {
@@ -1339,6 +1382,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       saveBackground();
       applyBackground(backgroundImage);
     }
+
+    const selectedLang = languageSelect.value;
+    setLanguage(selectedLang);
   });
 
   // Export/Import functionality
@@ -1490,8 +1536,12 @@ function showEditIconModal(itemId) {
   modal.setAttribute("aria-hidden", "false");
   modal.dataset.itemId = itemId;
   
-  const useLocalIconBtn = document.getElementById("useLocalIcon");
   const editLocalIconInput = document.getElementById("editLocalIcon");
+  if (editLocalIconInput) {
+    editLocalIconInput.value = "";
+  }
+  
+  const useLocalIconBtn = document.getElementById("useLocalIcon");
   
   useLocalIconBtn.onclick = () => editLocalIconInput.click();
   editLocalIconInput.onchange = () => {

@@ -15,7 +15,7 @@ A lightweight, privacy-friendly Chrome new tab extension with a cyberpunk theme.
 - __Supported search engines: Google, Bing, Baidu.__
 - __Supported system languages: English, Simplified Chinese, Japanese.__
 - Sync top bookmarks into the grid and keep them in sync, you can customize the amount of bookmarks synced in settings.
-- Custom background image __not supported now__ and export/import settings.
+- Custom background image and export/import settings.
 
 ## Important files
 
