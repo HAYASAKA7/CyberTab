@@ -419,14 +419,20 @@ function showTweetDetailModal(link, tweetText, tweetTime, tweetUrl) {
   // Set open button - convert Nitter URL to Twitter/X URL
   const openBtn = document.getElementById("tweetDetailOpenBtn");
   openBtn.onclick = () => {
-    let xUrl = tweetUrl || `https://x.com/${link.username}`;
+    let xUrl = "";
     
-    // Extract status ID from Nitter URL and convert to X.com URL
+    // Extract status ID from Nitter URL
     if (tweetUrl) {
       const statusMatch = tweetUrl.match(/\/status\/(\d+)/);
       if (statusMatch && statusMatch[1]) {
-        xUrl = `https://x.com/${link.username}/status/${statusMatch[1]}`;
+        const statusId = statusMatch[1];
+        xUrl = `https://x.com/${link.username}/status/${statusId}`;
       }
+    }
+    
+    // Fallback if no status ID found
+    if (!xUrl) {
+      xUrl = `https://x.com/${link.username}`;
     }
     
     if (xUrl) {
@@ -510,11 +516,7 @@ async function fetchTwitterAccount(accountId) {
   
   try {
     const nitterInstances = [
-      'https://nitter.net',
-      'https://rsshub.app/twitter/user',
-      'https://xcancel.com',
-      'https://nuku.trabun.org',
-      'https://nitter.poast.org'
+      'https://nitter.net'
     ];
     
     let lastError = null;
@@ -626,7 +628,51 @@ async function fetchTwitterAccount(accountId) {
           
           // Extract tweet text from <div class="tweet-content media-body">
           const contentEl = tweetEl.querySelector('div.tweet-content');
-          const text = contentEl ? contentEl.textContent.trim() : '';
+          let text = contentEl ? contentEl.textContent.trim() : '';
+
+          // Extract media/attachments - get actual image/video links
+          const attachmentsEl = tweetEl.querySelector('div.attachments');
+          if (attachmentsEl) {
+            // Get all images in attachments
+            const images = attachmentsEl.querySelectorAll('img[src*="media"], img[src*="pbs.twimg"]');
+            const imageLinks = Array.from(images)
+              .map(img => {
+                let src = img.src || '';
+                // Convert relative paths to absolute
+                if (src.startsWith('/pic/')) {
+                  src = instance + src;
+                }
+                return src;
+              })
+              .filter(src => src && src.length > 0);
+            
+            if (imageLinks.length > 0) {
+              mediaInfo = `\n[Media: ${imageLinks.length} image(s)]`;
+            }
+            
+            // Check for videos
+            const videos = attachmentsEl.querySelectorAll('video, [class*="video"]');
+            if (videos.length > 0) {
+              mediaInfo += `\n[Video attached]`;
+            }
+          }
+          
+          // Extract quoted tweet content
+          const quoteEl = tweetEl.querySelector('div.quote');
+          let quoteInfo = '';
+          if (quoteEl) {
+            const quoteTextEl = quoteEl.querySelector('div.quote-text');
+            if (quoteTextEl) {
+              const quoteText = quoteTextEl.textContent.trim();
+              quoteInfo = '\n[Quote: ' + quoteText.substring(0, 80) + '...]';
+            }
+            
+            // Also extract media from quoted tweet
+            const quoteMediaEl = quoteEl.querySelector('div.quote-media-container img, div.quote-media-container video');
+            if (quoteMediaEl) {
+              quoteInfo += '\n[Quote has media]';
+            }
+          }
           
           // Extract tweet link - look for link to /status/
           let url = '';
@@ -656,7 +702,7 @@ async function fetchTwitterAccount(accountId) {
           // Only add tweet if it has text
           if (text && text.length > 0) {
             tweets.push({
-              text: text.slice(0, 200),
+              text: text.slice(0, 300),
               url: url,
               time: time
             });
@@ -1758,6 +1804,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Setup right sidebar trigger
   setupRightSidebarTrigger();
   renderTwitterCards();
+
+  quickLinks.forEach(link => {
+    if (link && link.id) {
+      fetchTwitterAccount(link.id);
+    }
+  });
   setupTwitterAutoRefresh();
 
   quickLinks.forEach(link => {
