@@ -34,7 +34,7 @@
   <div id="rightSidebar" class="sidebar right-sidebar">
     <!-- Top action buttons -->
     <div class="right-sidebar-actions">
-      <button id="rightSidebarSettings" class="right-sidebar-btn" title="Settings">⚙️</button>
+      <button id="rightSidebarSettings" class="right-sidebar-btn" data-i18n-title="rightSidebarSettingsTitle" title="Settings">⚙️</button>
     </div>
     
     <!-- Content cards -->
@@ -176,7 +176,7 @@
     </div>
   </div>
 
-  <!-- NEW: Right Sidebar Settings Modal -->
+  <!-- Right Sidebar Settings Modal -->
   <div id="rightSidebarSettingsModal" class="modal hidden" role="dialog" aria-hidden="true">
     <div class="card settings-card">
       <h3 data-i18n="rightSidebarSettingsTitle">Twitter Accounts</h3>
@@ -191,10 +191,36 @@
       </div>
       
       <div class="row">
-        <button type="button" id="rightSidebarSettingsClose" class="btn ghost" data-i18n="cancelButton">Close</button>
+        <button type="button" id="rightSidebarSettingsClose" class="btn ghost" data-i18n="closeButton">Close</button>
       </div>
     </div>
   </div>
+
+  <!-- Tweet Detail Modal -->
+  <div id="tweetDetailModal" class="modal hidden" role="dialog" aria-hidden="true">
+  <div class="tweet-detail-card">
+    <button id="tweetDetailClose" class="tweet-detail-close" data-i18n-title="tweetDetailCloseTitle" title="Close">✕</button>
+
+    <div class="tweet-detail-header">
+      <img id="tweetDetailAvatar" class="tweet-detail-avatar" alt="User avatar" />
+      <div class="tweet-detail-user-info">
+        <div id="tweetDetailDisplayName" class="tweet-detail-display-name"></div>
+        <div id="tweetDetailHandle" class="tweet-detail-handle"></div>
+      </div>
+    </div>
+    
+    <div class="tweet-detail-content">
+      <div id="tweetDetailText" class="tweet-detail-text"></div>
+    </div>
+    
+    <div class="tweet-detail-footer">
+      <div id="tweetDetailTime" class="tweet-detail-time"></div>
+      <div class="tweet-detail-actions">
+        <button id="tweetDetailOpenBtn" class="btn neon" data-i18n="openOnX">Open on X</button>
+      </div>
+    </div>
+  </div>
+</div>
 
   <script src="newtab.js"></script>
 </body>

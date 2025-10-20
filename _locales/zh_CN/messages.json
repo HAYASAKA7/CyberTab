@@ -146,9 +146,6 @@
   "rightSidebarPlaceholder": {
     "message": "快速访问"
   },
-  "rightSidebarSettingsTitle": {
-    "message": "快速链接设置"
-  },
   "quickLinkUrlPlaceholder": {
     "message": "https://example.com"
   },
@@ -166,5 +163,41 @@
   },
   "twitterAccountsEmpty": {
     "message": "暂无推特账户"
+  },
+  "closeButton": {
+    "message": "关闭"
+  },
+  "openOnX": {
+    "message": "在 X 上打开"
+  },
+  "unknown": {
+    "message": "未知"
+  },
+  "justNow": {
+    "message": "刚刚"
+  },
+  "minutesAgo": {
+    "message": "${minutes}分钟前"
+  },
+  "hoursAgo": {
+    "message": "${hours}小时前"
+  },
+  "daysAgo": {
+    "message": "${days}天前"
+  },
+  "menuToggleTitle": {
+    "message": "菜单"
+  },
+  "rightSidebarSettingsTitle": {
+    "message": "推特账户设置"
+  },
+  "refreshButtonTitle": {
+    "message": "刷新"
+  },
+  "deleteButtonTitle": {
+    "message": "删除"
+  },
+  "tweetDetailCloseTitle": {
+    "message": "关闭"
   }
 }

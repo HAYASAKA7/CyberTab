@@ -146,9 +146,6 @@
   "rightSidebarPlaceholder": {
     "message": "Quick Access"
   },
-  "rightSidebarSettingsTitle": {
-    "message": "Quick Links Settings"
-  },
   "quickLinkUrlPlaceholder": {
     "message": "https://example.com"
   },
@@ -166,5 +163,41 @@
   },
   "twitterAccountsEmpty": {
     "message": "No Twitter accounts yet"
+  },
+  "closeButton": {
+    "message": "Close"
+  },
+  "openOnX": {
+    "message": "Open on X"
+  },
+  "unknown": {
+    "message": "Unknown"
+  },
+  "justNow": {
+    "message": "Just now"
+  },
+  "minutesAgo": {
+    "message": "${minutes}m ago"
+  },
+  "hoursAgo": {
+    "message": "${hours}h ago"
+  },
+  "daysAgo": {
+    "message": "${days}d ago"
+  },
+  "menuToggleTitle": {
+    "message": "Menu"
+  },
+  "rightSidebarSettingsTitle": {
+    "message": "Twitter Accounts Settings"
+  },
+  "refreshButtonTitle": {
+    "message": "Refresh"
+  },
+  "deleteButtonTitle": {
+    "message": "Delete"
+  },
+  "tweetDetailCloseTitle": {
+    "message": "Close"
   }
 }

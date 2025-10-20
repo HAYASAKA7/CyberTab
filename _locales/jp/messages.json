@@ -146,9 +146,6 @@
   "rightSidebarPlaceholder": {
     "message": "クイックアクセス"
   },
-  "rightSidebarSettingsTitle": {
-    "message": "クイックリンク設定"
-  },
   "quickLinkUrlPlaceholder": {
     "message": "https://example.com"
   },
@@ -166,5 +163,41 @@
   },
   "twitterAccountsEmpty": {
     "message": "ツイッターアカウントがありません"
+  },
+  "closeButton": {
+    "message": "閉じる"
+  },
+  "openOnX": {
+    "message": "Xで開く"
+  },
+  "unknown": {
+    "message": "不明"
+  },
+  "justNow": {
+    "message": "今"
+  },
+  "minutesAgo": {
+    "message": "${minutes}分前"
+  },
+  "hoursAgo": {
+    "message": "${hours}時間前"
+  },
+  "daysAgo": {
+    "message": "${days}日前"
+  },
+  "menuToggleTitle": {
+    "message": "メニュー"
+  },
+  "rightSidebarSettingsTitle": {
+    "message": "ツイッターアカウント設定"
+  },
+  "refreshButtonTitle": {
+    "message": "更新"
+  },
+  "deleteButtonTitle": {
+    "message": "削除"
+  },
+  "tweetDetailCloseTitle": {
+    "message": "閉じる"
   }
 }

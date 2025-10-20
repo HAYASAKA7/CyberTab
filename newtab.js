@@ -302,10 +302,11 @@ function renderQuickLinks() {
     return;
   }
   
+  const deleteTitle = getMessageFor("deleteButtonTitle") || "Delete";
   listEl.innerHTML = quickLinks.map(link => `
     <div class="quick-link-item" data-link-id="${link.id}">
       <span class="quick-link-item-url" title="https://x.com/${escapeHtml(link.username)}">${escapeHtml(link.handle)}</span>
-      <span class="quick-link-item-delete" data-action="delete">🗑️</span>
+      <span class="quick-link-item-delete" data-action="delete" data-i18n-title="deleteButtonTitle" title="${deleteTitle}">🗑️</span>
     </div>
   `).join("");
   
@@ -363,39 +364,109 @@ function renderTwitterCards() {
   
   container.innerHTML = quickLinks.map(link => createTwitterCardHTML(link)).join('');
   
-  // 添加刷新按钮事件
+  // Refresh button click events
   container.querySelectorAll('.twitter-refresh-btn').forEach(btn => {
     btn.addEventListener('click', () => {
+      if (btn.classList.contains('loading')) return;
       const accountId = btn.dataset.accountId;
       fetchTwitterAccount(accountId);
     });
   });
   
-  // 添加推文点击事件
+  // Tweet click events
   container.querySelectorAll('.twitter-tweet').forEach(tweet => {
     tweet.addEventListener('click', () => {
-      window.open(tweet.dataset.url, '_blank');
+      const tweetUrl = tweet.dataset.url;
+      const tweetText = tweet.querySelector('.twitter-tweet-text').textContent;
+      const tweetTime = tweet.querySelector('.twitter-tweet-time').textContent;
+      
+      const accountId = tweet.closest('.right-sidebar-card').dataset.accountId;
+      const link = quickLinks.find(l => l.id === accountId);
+      
+      if (link) {
+        showTweetDetailModal(link, tweetText, tweetTime, tweetUrl);
+      }
     });
   });
 }
 
+// Create tweet detail modal
+function showTweetDetailModal(link, tweetText, tweetTime, tweetUrl) {
+  const modal = document.getElementById("tweetDetailModal");
+  const rightSidebar = document.getElementById("rightSidebar");
+
+  if (rightSidebar) {
+    rightSidebar.classList.add("disabled");
+    rightSidebar.dataset.lockOpen = "true";
+  }
+  
+  // Set avatar and user info
+  const avatarImg = document.getElementById("tweetDetailAvatar");
+  if (link.avatar) {
+    avatarImg.src = link.avatar;
+    avatarImg.style.display = 'block';
+  } else {
+    avatarImg.style.display = 'none';
+  }
+  
+  document.getElementById("tweetDetailDisplayName").textContent = link.displayName || link.username;
+  document.getElementById("tweetDetailHandle").textContent = link.handle;
+  
+  // Set tweet content
+  document.getElementById("tweetDetailText").textContent = tweetText;
+  document.getElementById("tweetDetailTime").textContent = tweetTime;
+  
+  // Set open button - convert Nitter URL to Twitter/X URL
+  const openBtn = document.getElementById("tweetDetailOpenBtn");
+  openBtn.onclick = () => {
+    let xUrl = tweetUrl || `https://x.com/${link.username}`;
+    
+    // Extract status ID from Nitter URL and convert to X.com URL
+    if (tweetUrl) {
+      const statusMatch = tweetUrl.match(/\/status\/(\d+)/);
+      if (statusMatch && statusMatch[1]) {
+        xUrl = `https://x.com/${link.username}/status/${statusMatch[1]}`;
+      }
+    }
+    
+    if (xUrl) {
+      window.open(xUrl, '_blank');
+    }
+    closeTweetDetailModal();
+  };
+
+  // Show modal
+  modal.classList.remove("hidden");
+  modal.setAttribute("aria-hidden", "false");
+}
+
+// Close tweet detail modal
+function closeTweetDetailModal() {
+  const modal = document.getElementById("tweetDetailModal");
+  const rightSidebar = document.getElementById("rightSidebar");
+
+  if (rightSidebar) {
+    rightSidebar.classList.remove("disabled");
+    delete rightSidebar.dataset.lockOpen;
+  }
+
+  modal.classList.add("hidden");
+  modal.setAttribute("aria-hidden", "true");
+}
+
 // Create Twitter card HTML
 function createTwitterCardHTML(link) {
-  const hasError = link.error;
-  const isLoading = link.loading;
-  const hasTweets = link.tweets && link.tweets.length > 0;
+  const isLoading = link.loading ? 'true' : 'false';
+  const refreshTitle = getMessageFor("refreshButtonTitle") || "Refresh";
   
   let contentHTML = '';
-  
-  if (isLoading) {
-    contentHTML = '<div class="twitter-card-loading">Loading tweets...</div>';
-  } else if (hasError) {
+  if (link.error) {
     contentHTML = `<div class="twitter-card-error">${escapeHtml(link.error)}</div>`;
-  } else if (hasTweets) {
+  } else if (link.tweets && link.tweets.length > 0) {
     contentHTML = `
       <div class="twitter-tweets">
-        ${link.tweets.slice(0, 5).map(tweet => `
-          <div class="twitter-tweet" data-url="${escapeHtml(tweet.url)}">
+        ${link.tweets.map(tweet => `
+          <div class="twitter-tweet">
             <div class="twitter-tweet-text">${escapeHtml(tweet.text)}</div>
             <div class="twitter-tweet-time">${formatTwitterTime(tweet.time)}</div>
           </div>
@@ -415,7 +486,7 @@ function createTwitterCardHTML(link) {
             <div class="twitter-username">${escapeHtml(link.displayName || link.username)}</div>
             <div class="twitter-handle">${escapeHtml(link.handle)}</div>
           </div>
-          <button class="twitter-refresh-btn ${isLoading ? 'loading' : ''}" data-account-id="${link.id}" title="Refresh">
+          <button class="twitter-refresh-btn ${isLoading === 'true' ? 'loading' : ''}" data-account-id="${link.id}" data-i18n-title="refreshButtonTitle" title="${refreshTitle}" ${isLoading === 'true' ? 'disabled' : ''}>
             🔄
           </button>
         </div>
@@ -432,6 +503,9 @@ async function fetchTwitterAccount(accountId) {
   
   link.loading = true;
   link.error = null;
+  link.tweets = [];
+  link.avatar = ''; 
+  link.displayName = link.username;
   renderTwitterCards();
   
   try {
@@ -485,6 +559,10 @@ async function fetchTwitterAccount(accountId) {
           console.debug(`${instance} returned empty response`);
           continue;
         }
+
+        console.log('===== Full HTML Content =====');
+        console.log(htmlText);
+        console.log('===== HTML End =====');
         
         // Parse HTML
         const parser = new DOMParser();
@@ -495,7 +573,35 @@ async function fetchTwitterAccount(accountId) {
         const fullnameEl = htmlDoc.querySelector('a.profile-card-fullname');
         
         if (avatarEl && avatarEl.src) {
-          link.avatar = avatarEl.src;
+          let avatarUrl = avatarEl.src;
+          // Handle different avatar URL formats from Nitter
+          if (avatarUrl.startsWith('/pic/')) {
+            // Relative path like "/pic/pbs.twimg.com%2F..." 
+            avatarUrl = instance + avatarUrl;
+          } else if (avatarUrl.startsWith('http')) {
+            // Already absolute URL, keep as is
+            // No change needed
+          } else if (avatarUrl.startsWith('chrome-extension://')) {
+            // Invalid extension URL, extract the actual path and rebuild
+            const match = avatarUrl.match(/\/pic\/(.+)$/);
+            if (match) {
+              avatarUrl = instance + '/pic/' + match[1];
+            }
+          } else if (avatarUrl.includes('pbs.twimg.com') || avatarUrl.includes('profile_images')) {
+            // Encoded path without /pic/ prefix, add it
+            avatarUrl = instance + '/pic/' + avatarUrl;
+          } else if (avatarUrl.startsWith('/')) {
+            // Other relative path
+            avatarUrl = instance + avatarUrl;
+          } else {
+            // Bare path, add /pic/ prefix
+            avatarUrl = instance + '/pic/' + avatarUrl;
+          }
+          
+          link.avatar = avatarUrl;
+          console.log(`Avatar found: ${link.avatar}`);
+        } else {
+          console.log('Avatar element not found');
         }
         
         if (fullnameEl) {
@@ -536,7 +642,14 @@ async function fetchTwitterAccount(accountId) {
           if (dateEl) {
             const title = dateEl.getAttribute('title');
             if (title) {
-              time = new Date(title).getTime();
+              const dateStr = title
+                .replace(' UTC', '')
+                .replace('·', '')
+                .trim();
+              const parsedTime = new Date(dateStr).getTime();
+              if (!isNaN(parsedTime) && parsedTime > 0) {
+                time = parsedTime;
+              }
             }
           }
           
@@ -578,6 +691,7 @@ async function fetchTwitterAccount(accountId) {
     console.error('Fetch Twitter account error:', error);
     link.loading = false;
     link.error = error.message || 'Failed to load tweets';
+    link.lastUpdate = Date.now();
     saveQuickLinks();
     renderTwitterCards();
   }
@@ -585,7 +699,7 @@ async function fetchTwitterAccount(accountId) {
 
 // Format timestamp to relative time
 function formatTwitterTime(timestamp) {
-  if (!timestamp || isNaN(timestamp)) return 'Unknown';
+  if (!timestamp || isNaN(timestamp)) return getMessageFor("unknown") || 'Unknown';
 
   const now = Date.now();
   const diff = now - timestamp;
@@ -594,10 +708,23 @@ function formatTwitterTime(timestamp) {
   const hours = Math.floor(diff / 3600000);
   const days = Math.floor(diff / 86400000);
   
-  if (minutes < 1) return 'Just now';
-  if (minutes < 60) return `${minutes}m ago`;
-  if (hours < 24) return `${hours}h ago`;
-  if (days < 7) return `${days}d ago`;
+  if (diff < 0) return getMessageFor("justNow") || 'Just now';
+  if (minutes < 1) return getMessageFor("justNow") || 'Just now';
+  
+  if (minutes < 60) {
+    const template = getMessageFor("minutesAgo") || "${minutes}m ago";
+    return template.replace("${minutes}", minutes);
+  }
+  
+  if (hours < 24) {
+    const template = getMessageFor("hoursAgo") || "${hours}h ago";
+    return template.replace("${hours}", hours);
+  }
+  
+  if (days < 7) {
+    const template = getMessageFor("daysAgo") || "${days}d ago";
+    return template.replace("${days}", days);
+  }
   
   return new Date(timestamp).toLocaleDateString();
 }
@@ -1518,9 +1645,23 @@ async function localizePage() {
   }
 
   // If user selected a specific language, try to load that messages.json
-  let messagesMap = null;
-  if (currentLanguage && currentLanguage !== "auto") {
-    messagesMap = await loadMessagesForLocale(currentLanguage);
+let messagesMap = null;
+  let targetLocale = currentLanguage;
+  
+  if (currentLanguage === "auto") {
+    // Get browser language and map it to available locales
+    const browserLang = chrome.i18n.getUILanguage();
+    if (browserLang.startsWith('zh')) {
+      targetLocale = 'zh_CN';
+    } else if (browserLang.startsWith('ja')) {
+      targetLocale = 'jp';
+    } else {
+      targetLocale = 'en';
+    }
+  }
+  
+  if (targetLocale && targetLocale !== "auto") {
+    messagesMap = await loadMessagesForLocale(targetLocale);
   }
 
   messagesMapCache = messagesMap || null;
@@ -2039,6 +2180,31 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (e.key === "Enter") {
         e.preventDefault();
         handleAddQuickLink();
+      }
+    });
+  }
+
+  // Tweet detail modal close button
+  const tweetDetailClose = document.getElementById("tweetDetailClose");
+  if (tweetDetailClose) {
+    tweetDetailClose.addEventListener("click", () => {
+      closeTweetDetailModal();
+    });
+  }
+  
+  // Close tweet detail modal on Escape
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      closeTweetDetailModal();
+    }
+  });
+  
+  // Close on outside click
+  const tweetDetailModal = document.getElementById("tweetDetailModal");
+  if (tweetDetailModal) {
+    tweetDetailModal.addEventListener("click", (e) => {
+      if (e.target === tweetDetailModal) {
+        closeTweetDetailModal();
       }
     });
   }
