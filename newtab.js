@@ -336,8 +336,13 @@ function renderQuickLinks() {
 function renderTwitterCards() {
   const container = document.getElementById("twitterCardsContainer");
   if (!container) return;
+
+  container.querySelectorAll('[data-avatar-img]').forEach(img => {
+    img.addEventListener('error', () => {
+      img.style.display = 'none';
+    });
+  });
   
-  // 保留默认卡片
   const defaultCard = container.querySelector('.default-card');
   
   if (quickLinks.length === 0) {
@@ -405,9 +410,9 @@ function createTwitterCardHTML(link) {
     <div class="right-sidebar-card" data-account-id="${link.id}">
       <div class="twitter-card">
         <div class="twitter-card-header">
-          ${link.avatar ? `<img src="${escapeHtml(link.avatar)}" class="twitter-avatar" alt="${escapeHtml(link.username)}">` : '<div class="twitter-avatar"></div>'}
+          ${link.avatar ? `<img src="${escapeHtml(link.avatar)}" class="twitter-avatar" alt="${escapeHtml(link.username)}" data-avatar-img>` : '<div class="twitter-avatar"></div>'}
           <div class="twitter-user-info">
-            <div class="twitter-username">${escapeHtml(link.username)}</div>
+            <div class="twitter-username">${escapeHtml(link.displayName || link.username)}</div>
             <div class="twitter-handle">${escapeHtml(link.handle)}</div>
           </div>
           <button class="twitter-refresh-btn ${isLoading ? 'loading' : ''}" data-account-id="${link.id}" title="Refresh">
@@ -421,7 +426,6 @@ function createTwitterCardHTML(link) {
 }
 
 // Fetch Twitter account tweets via Nitter HTML parsing
-// Fetch Twitter account tweets via Nitter HTML parsing
 async function fetchTwitterAccount(accountId) {
   const link = quickLinks.find(l => l.id === accountId);
   if (!link) return;
@@ -433,6 +437,7 @@ async function fetchTwitterAccount(accountId) {
   try {
     const nitterInstances = [
       'https://nitter.net',
+      'https://rsshub.app/twitter/user',
       'https://xcancel.com',
       'https://nuku.trabun.org',
       'https://nitter.poast.org'
@@ -444,8 +449,10 @@ async function fetchTwitterAccount(accountId) {
       const instance = nitterInstances[i];
       
       try {
+        // Add exponential backoff: first instance no delay, then 1s, 2s, 4s
         if (i > 0) {
-          await new Promise(resolve => setTimeout(resolve, 500 * i));
+          const delayMs = Math.pow(2, i - 1) * 1000;
+          await new Promise(resolve => setTimeout(resolve, delayMs));
         }
         
         const url = `${instance}/${link.username}`;
@@ -453,7 +460,7 @@ async function fetchTwitterAccount(accountId) {
         const response = await new Promise((resolve, reject) => {
           const timeout = setTimeout(() => {
             reject(new Error('Request timeout'));
-          }, 10000);
+          }, 15000); // Increased timeout to 15s
           
           chrome.runtime.sendMessage({ type: 'fetchSuggestions', url }, (response) => {
             clearTimeout(timeout);
@@ -475,6 +482,7 @@ async function fetchTwitterAccount(accountId) {
         
         if (!htmlText || htmlText.trim().length === 0) {
           lastError = 'Empty response';
+          console.debug(`${instance} returned empty response`);
           continue;
         }
         
@@ -482,6 +490,20 @@ async function fetchTwitterAccount(accountId) {
         const parser = new DOMParser();
         const htmlDoc = parser.parseFromString(htmlText, 'text/html');
         
+        //avatar and display name
+        const avatarEl = htmlDoc.querySelector('a.profile-card-avatar img');
+        const fullnameEl = htmlDoc.querySelector('a.profile-card-fullname');
+        
+        if (avatarEl && avatarEl.src) {
+          link.avatar = avatarEl.src;
+        }
+        
+        if (fullnameEl) {
+          link.displayName = fullnameEl.textContent.trim();
+        } else {
+          link.displayName = link.username;
+        }
+
         // Nitter HTML structure: tweets are in <div class="tweet-body">
         const tweetElements = htmlDoc.querySelectorAll('div.tweet-body');
         
@@ -563,6 +585,8 @@ async function fetchTwitterAccount(accountId) {
 
 // Format timestamp to relative time
 function formatTwitterTime(timestamp) {
+  if (!timestamp || isNaN(timestamp)) return 'Unknown';
+
   const now = Date.now();
   const diff = now - timestamp;
   
@@ -582,7 +606,7 @@ function formatTwitterTime(timestamp) {
 function setupTwitterAutoRefresh() {
   setInterval(() => {
     quickLinks.forEach(link => {
-      if (link.lastUpdate && Date.now() - link.lastUpdate > 300000) { // 5分钟
+      if (link.lastUpdate && Date.now() - link.lastUpdate > 300000) { // 5 minutes
         fetchTwitterAccount(link.id);
       }
     });
