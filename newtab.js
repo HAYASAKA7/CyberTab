@@ -420,7 +420,8 @@ function createTwitterCardHTML(link) {
   `;
 }
 
-// Fetch Twitter account tweets via Nitter RSS
+// Fetch Twitter account tweets via Nitter HTML parsing
+// Fetch Twitter account tweets via Nitter HTML parsing
 async function fetchTwitterAccount(accountId) {
   const link = quickLinks.find(l => l.id === accountId);
   if (!link) return;
@@ -431,21 +432,31 @@ async function fetchTwitterAccount(accountId) {
   
   try {
     const nitterInstances = [
-      'https://nitter.privacydev.net',
-      'https://nitter.poast.org',
       'https://nitter.net',
-      'https://nitter.1d4.us',
-      'https://nitter.kavin.rocks'
+      'https://xcancel.com',
+      'https://nuku.trabun.org',
+      'https://nitter.poast.org'
     ];
     
     let lastError = null;
     
-    for (const instance of nitterInstances) {
+    for (let i = 0; i < nitterInstances.length; i++) {
+      const instance = nitterInstances[i];
+      
       try {
-        const url = `${instance}/${link.username}/rss`;
+        if (i > 0) {
+          await new Promise(resolve => setTimeout(resolve, 500 * i));
+        }
+        
+        const url = `${instance}/${link.username}`;
         
         const response = await new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            reject(new Error('Request timeout'));
+          }, 10000);
+          
           chrome.runtime.sendMessage({ type: 'fetchSuggestions', url }, (response) => {
+            clearTimeout(timeout);
             if (chrome.runtime.lastError) {
               reject(new Error(chrome.runtime.lastError.message));
             } else {
@@ -455,59 +466,71 @@ async function fetchTwitterAccount(accountId) {
         });
         
         if (!response || !response.ok) {
-          lastError = 'Failed to fetch';
+          lastError = `Instance ${instance} failed: ${response?.error || 'unknown error'}`;
+          console.debug(lastError);
           continue;
         }
         
-        const rssText = typeof response.data === 'string' ? response.data : '';
+        const htmlText = typeof response.data === 'string' ? response.data : '';
         
+        if (!htmlText || htmlText.trim().length === 0) {
+          lastError = 'Empty response';
+          continue;
+        }
+        
+        // Parse HTML
         const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(rssText, 'text/xml');
+        const htmlDoc = parser.parseFromString(htmlText, 'text/html');
         
-        const parseError = xmlDoc.querySelector('parsererror');
-        if (parseError) {
-          lastError = 'Parse error';
-          continue;
-        }
+        // Nitter HTML structure: tweets are in <div class="tweet-body">
+        const tweetElements = htmlDoc.querySelectorAll('div.tweet-body');
         
-        const items = xmlDoc.querySelectorAll('item');
+        console.log(`Found ${tweetElements.length} tweet containers`);
         
-        if (items.length === 0) {
+        if (tweetElements.length === 0) {
           lastError = 'No tweets found';
           continue;
         }
         
-        const tweets = Array.from(items).slice(0, 5).map(item => {
-          const title = item.querySelector('title')?.textContent || '';
-          const description = item.querySelector('description')?.textContent || '';
-          const link = item.querySelector('link')?.textContent || '';
-          const pubDate = item.querySelector('pubDate')?.textContent || '';
+        const tweets = [];
+        for (let j = 0; j < Math.min(5, tweetElements.length); j++) {
+          const tweetEl = tweetElements[j];
           
-          const cleanText = description.replace(/<[^>]*>/g, '').trim() || title;
+          // Extract tweet text from <div class="tweet-content media-body">
+          const contentEl = tweetEl.querySelector('div.tweet-content');
+          const text = contentEl ? contentEl.textContent.trim() : '';
           
-          return {
-            text: cleanText.slice(0, 200),
-            url: link,
-            time: new Date(pubDate).getTime()
-          };
-        });
-        
-        if (!link.avatar) {
-          try {
-            const profileUrl = `${instance}/${link.username}`;
-            const profileResp = await new Promise(resolve => {
-              chrome.runtime.sendMessage({ type: 'fetchSuggestions', url: profileUrl }, resolve);
-            });
-            
-            if (profileResp && profileResp.ok) {
-              const html = typeof profileResp.data === 'string' ? profileResp.data : '';
-              const avatarMatch = html.match(/class="avatar"[^>]*src="([^"]+)"/);
-              if (avatarMatch) {
-                link.avatar = `${instance}${avatarMatch[1]}`;
-              }
-            }
-          } catch (e) {
+          // Extract tweet link - look for link to /status/
+          let url = '';
+          const linkEl = tweetEl.querySelector('a[href*="/status/"]');
+          if (linkEl) {
+            const href = linkEl.getAttribute('href');
+            url = href ? (instance + href.split('#')[0]) : ''; // Remove fragment if present
           }
+          
+          // Extract timestamp from the tweet-date link
+          let time = Date.now();
+          const dateEl = tweetEl.querySelector('span.tweet-date a');
+          if (dateEl) {
+            const title = dateEl.getAttribute('title');
+            if (title) {
+              time = new Date(title).getTime();
+            }
+          }
+          
+          // Only add tweet if it has text
+          if (text && text.length > 0) {
+            tweets.push({
+              text: text.slice(0, 200),
+              url: url,
+              time: time
+            });
+          }
+        }
+        
+        if (tweets.length === 0) {
+          lastError = 'Could not parse tweets';
+          continue;
         }
         
         link.tweets = tweets;
@@ -517,10 +540,12 @@ async function fetchTwitterAccount(accountId) {
         
         saveQuickLinks();
         renderTwitterCards();
+        console.debug(`Successfully fetched ${tweets.length} tweets from ${instance}`);
         return;
         
       } catch (e) {
         lastError = e.message || 'Network error';
+        console.debug(`Instance ${instance} error:`, lastError);
         continue;
       }
     }
@@ -530,7 +555,7 @@ async function fetchTwitterAccount(accountId) {
   } catch (error) {
     console.error('Fetch Twitter account error:', error);
     link.loading = false;
-    link.error = 'Failed to load tweets';
+    link.error = error.message || 'Failed to load tweets';
     saveQuickLinks();
     renderTwitterCards();
   }
@@ -1964,6 +1989,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       const rightSidebar = document.getElementById("rightSidebar");
       rightSidebar.classList.remove("disabled");
       delete rightSidebar.dataset.lockOpen;
+
+      const settingsBtn = document.getElementById("rightSidebarSettings");
+      if (settingsBtn) settingsBtn.focus();
     });
   }
 
