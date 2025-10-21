@@ -35,7 +35,7 @@ const tileManager = new TileManager(layoutManager, iconManager, storageManager, 
 
 // Bookmark manager with callbacks
 const bookmarkManager = new BookmarkManager(storageManager, layoutManager, {
-  onRenderAll: () => tileManager.renderAll(),
+  onRenderAll: () => tileManager.renderAll(showTileContextMenu),
   onAutoAlign: () => tileManager.autoAlignTiles(),
   onFetchMissingFavicons: () => tileManager.fetchMissingFavicons()
 });
@@ -48,7 +48,7 @@ const contextMenuManager = new ContextMenuManager(i18nManager, {
   onDeleteItem: (itemId) => {
     storageManager.items = storageManager.items.filter(it => it.id !== itemId);
     storageManager.save();
-    tileManager.renderAll();
+    tileManager.renderAll(showTileContextMenu);
     tileManager.autoAlignTiles();
   },
   onShowAddModal: () => {
@@ -74,7 +74,7 @@ const settingsManager = new SettingsManager(storageManager, i18nManager, {
   onLoadBookmarks: async (count) => {
     await bookmarkManager.loadBookmarks(count);
   },
-  onRenderAll: () => tileManager.renderAll(),
+  onRenderAll: () => tileManager.renderAll(showTileContextMenu),
   onAutoAlign: () => tileManager.autoAlignTiles(),
   onApplyBackground: () => backgroundManager.applyPendingBackground(),
   onUpdateEngineUI: () => searchManager.updateEngineUI(),
@@ -108,12 +108,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   
   // Compute initial layout
   layoutManager.computeLayout();
-  tileManager.renderAll();
+  tileManager.renderAll(showTileContextMenu);
   
   // Recompute layout on resize
   window.addEventListener('resize', () => {
     layoutManager.computeLayout();
-    tileManager.renderAll();
+    tileManager.renderAll(showTileContextMenu);
   });
   
   // Initialize UI components
@@ -162,3 +162,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     onPerformSearch: (query) => searchManager.performSearch(query)
   });
 });
+
+function showTileContextMenu(x, y, itemId) {
+  contextMenuManager.showContextMenu(x, y, itemId);
+}
