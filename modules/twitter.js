@@ -298,7 +298,7 @@ export class TwitterManager {
         if (src.match(/\.(mp4|webm)$/i)) {
             mediaHtml += `<video src="${src}" controls style="max-width:100%;border-radius:10px;margin:8px 0;"></video>`;
         } else {
-            mediaHtml += `<img src="${src}" style="max-width:100%;border-radius:10px;margin:8px 0;" />`;
+            mediaHtml += `<img src="${src}" class="tweet-media-img" style="max-width:100%;border-radius:10px;margin:8px 0;cursor:pointer;" />`;
         }
         });
         mediaHtml += `</div>`;
@@ -318,7 +318,7 @@ export class TwitterManager {
           if (src.match(/\.(mp4|webm)$/i)) {
           retweetHtml += `<video src="${src}" controls style="max-width:100%;border-radius:10px;margin:8px 0;"></video>`;
           } else {
-          retweetHtml += `<img src="${src}" style="max-width:100%;border-radius:10px;margin:8px 0;" />`;
+          retweetHtml += `<img src="${src}" class="tweet-media-img" style="max-width:100%;border-radius:10px;margin:8px 0;cursor:pointer;" />`;
           }
       });
       retweetHtml += `</div>`;
@@ -328,10 +328,20 @@ export class TwitterManager {
 
     textEl.insertAdjacentHTML("afterend", mediaHtml + retweetHtml);
 
+    // Add click event to all images for enlargement
+    const allImages = textEl.parentElement.querySelectorAll('.tweet-media-img');
+    allImages.forEach(img => {
+      img.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.showImageLightbox(img.src);
+      });
+    });
+
     const retweetDiv = textEl.parentElement.querySelector('.tweet-detail-retweet');
     if (retweetDiv && tweetObj && tweetObj.url) {
       retweetDiv.addEventListener('click', (e) => {
         if (e.target.tagName.toLowerCase() === 'a') return;
+        if (e.target.classList.contains('tweet-media-img')) return;
         window.open(retweetDiv.dataset.url, '_blank');
       });
     }
@@ -361,6 +371,61 @@ export class TwitterManager {
 
     modal.classList.remove("hidden");
     modal.setAttribute("aria-hidden", "false");
+  }
+
+  showImageLightbox(imageSrc) {
+    // Create lightbox overlay
+    const lightbox = document.createElement('div');
+    lightbox.className = 'image-lightbox';
+    lightbox.innerHTML = `
+      <div class="lightbox-close" title="Close">✕</div>
+      <img src="${imageSrc}" class="lightbox-image" alt="Enlarged image" />
+    `;
+    
+    document.body.appendChild(lightbox);
+
+    // Disable tweet detail modal interaction
+    const tweetDetailModal = document.getElementById("tweetDetailModal");
+    if (tweetDetailModal) {
+      tweetDetailModal.style.pointerEvents = 'none';
+    }
+
+    // Close function with animation
+    const closeLightbox = () => {
+      lightbox.classList.remove('active');
+      
+      // Re-enable tweet detail modal
+      if (tweetDetailModal) {
+        tweetDetailModal.style.pointerEvents = '';
+      }
+      
+      setTimeout(() => {
+        if (document.body.contains(lightbox)) {
+          document.body.removeChild(lightbox);
+        }
+      }, 300);
+    };
+    
+    // Close on click
+    lightbox.addEventListener('click', (e) => {
+      if (e.target === lightbox || e.target.classList.contains('lightbox-close')) {
+        closeLightbox();
+      }
+    });
+    
+    // Close on Escape key
+    const closeOnEscape = (e) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        e.preventDefault();
+        closeLightbox();
+        document.removeEventListener('keydown', closeOnEscape);
+      }
+    };
+    document.addEventListener('keydown', closeOnEscape);
+    
+    // Animate in
+    setTimeout(() => lightbox.classList.add('active'), 10);
   }
 
   restoreOriginalUrl(nitterUrl) {

@@ -301,6 +301,9 @@ export class UIManager {
 
       // Escape to close modals
       if (e.key === "Escape") {
+        const imageLightbox = document.querySelector('.image-lightbox');
+        if (imageLightbox) return; // Let lightbox handle it
+
         this.managers.contextMenu.hideContextMenu();
         this.managers.sidebar.closeLeftSidebar();
 
