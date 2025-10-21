@@ -8,7 +8,8 @@ import {
   BOOKMARK_SYNC_COUNT_KEY,
   BACKGROUND_KEY,
   LOCAL_ICONS_KEY,
-  QUICK_LINKS_KEY
+  QUICK_LINKS_KEY,
+  QUICK_LINKS_TWEETS_KEY
 } from './constants.js';
 
 export class StorageManager {
@@ -20,6 +21,7 @@ export class StorageManager {
     this.bookmarkSyncCount = 5;
     this.backgroundImage = "";
     this.quickLinks = [];
+    this.quickLinksTweets = {};
   }
 
   save() {
@@ -73,7 +75,30 @@ export class StorageManager {
   }
 
   saveQuickLinks() {
-    chrome.storage.sync.set({ [QUICK_LINKS_KEY]: this.quickLinks });
+    // Save account data for sync storage
+    const accountsForSync = this.quickLinks.map(link => ({
+      id: link.id,
+      username: link.username,
+      handle: link.handle,
+      avatar: link.avatar,
+      displayName: link.displayName,
+      lastUpdate: link.lastUpdate,
+      addedAt: link.addedAt,
+      loading: link.loading,
+      error: link.error
+    }));
+    
+    chrome.storage.sync.set({ [QUICK_LINKS_KEY]: accountsForSync });
+    
+    // Save tweets data locally
+    const tweetsData = {};
+    this.quickLinks.forEach(link => {
+      if (link.tweets && link.tweets.length > 0) {
+        tweetsData[link.id] = link.tweets;
+      }
+    });
+    
+    chrome.storage.local.set({ [QUICK_LINKS_TWEETS_KEY]: tweetsData });
   }
 
   async load() {
@@ -104,6 +129,12 @@ export class StorageManager {
           } else if (this.backgroundImage && this.backgroundImage.trim() === "") {
             this.backgroundImage = localRes[BACKGROUND_KEY] || "";
           }
+
+          // Load tweets for quick links
+          const tweetsData = localRes[QUICK_LINKS_TWEETS_KEY] || {};
+          this.quickLinks.forEach(link => {
+            link.tweets = tweetsData[link.id] || [];
+          });
 
           resolve();
         });

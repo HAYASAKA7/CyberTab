@@ -70,12 +70,16 @@ export class TwitterManager {
     }
     
     const deleteTitle = this.i18nManager.getMessage("deleteButtonTitle") || "Delete";
-    listEl.innerHTML = this.storageManager.quickLinks.map(link => `
-      <div class="quick-link-item" data-link-id="${link.id}">
-        <span class="quick-link-item-url" title="https://x.com/${this.escapeHtml(link.username)}">${this.escapeHtml(link.handle)}</span>
-        <span class="quick-link-item-delete" data-action="delete" data-i18n-title="deleteButtonTitle" title="${deleteTitle}">🗑️</span>
-      </div>
-    `).join("");
+    listEl.innerHTML = this.storageManager.quickLinks.map(link => {
+      const safeUsername = (link.username || '').replace(/[<>"']/g, '');
+      const safeHandle = (link.handle || '').replace(/[<>"']/g, '');
+      return `
+        <div class="quick-link-item" data-link-id="${link.id}">
+          <span class="quick-link-item-url" title="https://x.com/${safeUsername}">${safeHandle}</span>
+          <span class="quick-link-item-delete" data-action="delete" data-i18n-title="deleteButtonTitle" title="${deleteTitle}">🗑️</span>
+        </div>
+      `;
+    }).join("");
     
     listEl.querySelectorAll(".quick-link-item").forEach(el => {
       const linkId = el.dataset.linkId;
@@ -163,6 +167,10 @@ export class TwitterManager {
     const isLoading = link.loading ? 'true' : 'false';
     const refreshTitle = this.i18nManager.getMessage("refreshButtonTitle") || "Refresh";
     
+    const safeUsername = (link.username || '').replace(/[<>"']/g, '');
+    const safeDisplayName = (link.displayName || link.username || '').replace(/[<>"']/g, '');
+    const safeHandle = (link.handle || '').replace(/[<>"']/g, '');
+    
     let contentHTML = '';
     if (link.error) {
       contentHTML = `<div class="twitter-card-error">${this.escapeHtml(link.error)}</div>`;
@@ -185,10 +193,10 @@ export class TwitterManager {
       <div class="right-sidebar-card" data-account-id="${link.id}">
         <div class="twitter-card">
           <div class="twitter-card-header">
-            ${link.avatar ? `<img src="${this.escapeHtml(link.avatar)}" class="twitter-avatar" alt="${this.escapeHtml(link.username)}" data-avatar-img>` : '<div class="twitter-avatar"></div>'}
+            ${link.avatar ? `<img src="${this.escapeHtml(link.avatar)}" class="twitter-avatar" alt="${safeUsername}" data-avatar-img>` : '<div class="twitter-avatar"></div>'}
             <div class="twitter-user-info">
-              <div class="twitter-username">${this.escapeHtml(link.displayName || link.username)}</div>
-              <div class="twitter-handle">${this.escapeHtml(link.handle)}</div>
+              <div class="twitter-username">${safeDisplayName}</div>
+              <div class="twitter-handle">${safeHandle}</div>
             </div>
             <button class="twitter-refresh-btn ${isLoading === 'true' ? 'loading' : ''}" data-account-id="${link.id}" data-i18n-title="refreshButtonTitle" title="${refreshTitle}" ${isLoading === 'true' ? 'disabled' : ''}>
               🔄
@@ -217,8 +225,11 @@ export class TwitterManager {
       avatarImg.style.display = 'none';
     }
     
-    document.getElementById("tweetDetailDisplayName").textContent = link.displayName || link.username;
-    document.getElementById("tweetDetailHandle").textContent = link.handle;
+    const safeDisplayName = (link.displayName || link.username || '').replace(/[<>"']/g, '');
+    const safeHandle = (link.handle || '').replace(/[<>"']/g, '');
+    
+    document.getElementById("tweetDetailDisplayName").textContent = safeDisplayName;
+    document.getElementById("tweetDetailHandle").textContent = safeHandle;
     
     let tweetObj = null;
     for (const t of link.tweets) {
@@ -296,24 +307,34 @@ export class TwitterManager {
     // Retweets rendering
     let retweetHtml = "";
     if (tweetObj && tweetObj.isRetweet) {
-        retweetHtml += `<div class="tweet-detail-retweet" style="margin:12px 0;padding:10px 14px;background:rgba(0,240,255,0.06);border-radius:8px;">
-        <div style="font-size:13px;color:#00f0ff;font-weight:600;">Retweet from ${tweetObj.retweetUser}</div>
-        <div style="font-size:14px;color:#bff7ff;margin-top:4px;">${this.escapeHtml(tweetObj.retweetText)}</div>`;
-        if (tweetObj.retweetMedia && tweetObj.retweetMedia.length > 0) {
-        retweetHtml += `<div class="tweet-detail-media">`;
-        tweetObj.retweetMedia.forEach(src => {
-            if (src.match(/\.(mp4|webm)$/i)) {
-            retweetHtml += `<video src="${src}" controls style="max-width:100%;border-radius:10px;margin:8px 0;"></video>`;
-            } else {
-            retweetHtml += `<img src="${src}" style="max-width:100%;border-radius:10px;margin:8px 0;" />`;
-            }
-        });
-        retweetHtml += `</div>`;
-        }
-        retweetHtml += `</div>`;
+      const retweetFrom = this.i18nManager.getMessage("retweetFrom") || "Retweet from";
+      const originalUrl = this.restoreOriginalUrl(tweetObj.url);
+      retweetHtml += `<div class="tweet-detail-retweet" data-url="${this.escapeHtml(originalUrl)}" style="margin:12px 0;padding:10px 14px;background:rgba(0,240,255,0.06);border-radius:8px;cursor:pointer;">
+      <div style="font-size:13px;color:#00f0ff;font-weight:600;">${retweetFrom} ${tweetObj.retweetUser}</div>
+      <div style="font-size:14px;color:#bff7ff;margin-top:4px;">${this.escapeHtml(tweetObj.retweetText)}</div>`;
+      if (tweetObj.retweetMedia && tweetObj.retweetMedia.length > 0) {
+      retweetHtml += `<div class="tweet-detail-media">`;
+      tweetObj.retweetMedia.forEach(src => {
+          if (src.match(/\.(mp4|webm)$/i)) {
+          retweetHtml += `<video src="${src}" controls style="max-width:100%;border-radius:10px;margin:8px 0;"></video>`;
+          } else {
+          retweetHtml += `<img src="${src}" style="max-width:100%;border-radius:10px;margin:8px 0;" />`;
+          }
+      });
+      retweetHtml += `</div>`;
+      }
+      retweetHtml += `</div>`;
     }
 
     textEl.insertAdjacentHTML("afterend", mediaHtml + retweetHtml);
+
+    const retweetDiv = textEl.parentElement.querySelector('.tweet-detail-retweet');
+    if (retweetDiv && tweetObj && tweetObj.url) {
+      retweetDiv.addEventListener('click', (e) => {
+        if (e.target.tagName.toLowerCase() === 'a') return;
+        window.open(retweetDiv.dataset.url, '_blank');
+      });
+    }
     
     document.getElementById("tweetDetailTime").textContent = tweetTime;
     

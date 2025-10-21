@@ -199,5 +199,8 @@
   },
   "tweetDetailCloseTitle": {
     "message": "关闭"
+  },
+  "retweetFrom": {
+    "message": "转推自"
   }
 }

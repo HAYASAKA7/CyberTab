@@ -14,6 +14,7 @@ export const BOOKMARK_SYNC_COUNT_KEY = "cyber_tab_bookmark_sync_count";
 export const BACKGROUND_KEY = "cyber_tab_background_image";
 export const LOCAL_ICONS_KEY = "cyber_tab_local_icons";
 export const QUICK_LINKS_KEY = "cyber_tab_quick_links";
+export const QUICK_LINKS_TWEETS_KEY = "cyber_tab_quick_links_tweets";
 
 // Right sidebar settings
 export const RIGHT_SIDEBAR_TRIGGER_ZONE = 20; // pixels from right edge to trigger
