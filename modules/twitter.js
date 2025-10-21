@@ -116,9 +116,16 @@ export class TwitterManager {
     const defaultCard = container.querySelector('.default-card');
 
     const sortedLinks = this.storageManager.quickLinks.slice().sort((a, b) => {
-        const aTime = (a.tweets && a.tweets.length) ? a.tweets[0].time : 0;
-        const bTime = (b.tweets && b.tweets.length) ? b.tweets[0].time : 0;
-        return bTime - aTime;
+        const getLatestTweetTime = (tweets) => {
+          return tweets
+            .filter(tweet => !tweet.isPinned) // Ignore pinned tweets for sorting
+            .reduce((latest, tweet) => Math.max(latest, tweet.time), 0);
+        };
+
+    const aTime = a.tweets && a.tweets.length ? getLatestTweetTime(a.tweets) : 0;
+    const bTime = b.tweets && b.tweets.length ? getLatestTweetTime(b.tweets) : 0;
+
+    return bTime - aTime;
     });
     
     if (sortedLinks.length === 0) {
@@ -248,6 +255,7 @@ export class TwitterManager {
         if (
         nextEl.classList &&
         (nextEl.classList.contains("tweet-detail-media") ||
+        nextEl.classList.contains("tweet-detail-video") ||
         nextEl.classList.contains("tweet-detail-retweet"))
         ) {
         const toRemove = nextEl;
@@ -262,9 +270,34 @@ export class TwitterManager {
     let displayText = this.escapeHtml(tweetText);
 
     if (tweetObj && tweetObj.links && tweetObj.links.length > 0) {
-      tweetObj.links.forEach(l => {
+      const nonMediaLinks = tweetObj.links.filter(l => {
+        const href = l.href || '';
+        const text = l.text || '';
+        
+        if (text.startsWith('pic.twitter.com') || 
+            text.startsWith('pic.x.com') ||
+            href.includes('pic.twitter.com') || 
+            href.includes('pic.x.com')) {
+          return false;
+        }
+        
+        if (href.includes('/video/') || 
+            href.includes('/photo/') ||
+            href.includes('/pic/')) {
+          return false;
+        }
+        
+        if (href.includes('t.co') && text.startsWith('pic.')) {
+          return false;
+        }
+        
+        return true;
+      });
+
+      nonMediaLinks.forEach(l => {
         const escapedText = this.escapeHtml(l.text);
         let actualHref = this.restoreOriginalUrl(l.href);
+        
         // Fix hashtag links from Nitter
         if (actualHref.includes('chrome-extension://') && actualHref.includes('search?q=%23')) {
           const hashtagMatch = actualHref.match(/search\?q=%23(.+?)(?:&|$)/);
@@ -293,15 +326,25 @@ export class TwitterManager {
     // Media rendering
     let mediaHtml = "";
     if (tweetObj && tweetObj.media && tweetObj.media.length > 0) {
-        mediaHtml += `<div class="tweet-detail-media">`;
-        tweetObj.media.forEach(src => {
+      let skipFirst = tweetObj.videoUrl && tweetObj.videoPoster && tweetObj.media[0] === tweetObj.videoPoster;
+      mediaHtml += `<div class="tweet-detail-media">`;
+      tweetObj.media.forEach(src => {
         if (src.match(/\.(mp4|webm)$/i)) {
-            mediaHtml += `<video src="${src}" controls style="max-width:100%;border-radius:10px;margin:8px 0;"></video>`;
+          mediaHtml += `<video src="${src}" controls style="max-width:100%;border-radius:10px;margin:8px 0;"></video>`;
         } else {
-            mediaHtml += `<img src="${src}" class="tweet-media-img" style="max-width:100%;border-radius:10px;margin:8px 0;cursor:pointer;" />`;
+          mediaHtml += `<img src="${src}" class="tweet-media-img" style="max-width:100%;border-radius:10px;margin:8px 0;cursor:pointer;" />`;
         }
-        });
-        mediaHtml += `</div>`;
+      });
+      mediaHtml += `</div>`;
+    }
+
+    // Render video if available
+    if (tweetObj && tweetObj.videoUrl) {
+      mediaHtml += `
+        <div class="tweet-detail-video">
+          <video src="${tweetObj.videoUrl}" controls poster="${tweetObj.videoPoster || ''}" style="max-width:100%;border-radius:10px;margin:8px 0;"></video>
+        </div>
+      `;
     }
 
     // Retweets rendering
@@ -566,6 +609,13 @@ export class TwitterManager {
           }
           
           const htmlText = typeof response.data === 'string' ? response.data : '';
+
+          console.log(`[Nitter HTML Response for ${link.username}]`);
+          console.log(`URL: ${url}`);
+          console.log(`HTML Length: ${htmlText.length} characters`);
+          console.log('HTML Content:');
+          console.log(htmlText);
+          console.log('--- End of HTML Response ---');
           
           if (!htmlText || htmlText.trim().length === 0) {
             lastError = 'Empty response';
@@ -693,6 +743,44 @@ export class TwitterManager {
                 }
               }
             }
+
+            // Extract video URL if available
+            let videoUrl = '';
+            let videoPoster = '';
+            const videoForm = tweetEl.querySelector('.attachments .gallery-video .video-container form[action="/enablehls"]');
+            if (videoForm) {
+              const posterImg = videoForm.closest('.video-container').querySelector('img');
+              if (posterImg && posterImg.src) {
+                videoPoster = posterImg.src.startsWith('/pic/')
+                  ? instance + posterImg.src
+                  : posterImg.src;
+              }
+              // Post form to /enablehls to get video stream URL
+              const formData = new FormData();
+              const refererInput = videoForm.querySelector('input[name="referer"]');
+              if (refererInput && refererInput.value) {
+                formData.append('referer', refererInput.value);
+
+                try {
+                  const enableHlsUrl = instance + '/enablehls';
+                  const resp = await fetch(enableHlsUrl, {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'include'
+                  });
+                  const html = await resp.text();
+
+                  // Parse returned HTML to find video source
+                  const tempDoc = new DOMParser().parseFromString(html, 'text/html');
+                  const videoTag = tempDoc.querySelector('video source[src]');
+                  if (videoTag) {
+                    videoUrl = videoTag.getAttribute('src');
+                  }
+                } catch (err) {
+                  console.warn('Failed to fetch video stream:', err);
+                }
+              }
+            }
             
             if (text && text.length > 0) {
               tweets.push({
@@ -704,7 +792,9 @@ export class TwitterManager {
                 retweetUser,
                 retweetText,
                 retweetMedia,
-                links
+                links,
+                videoUrl,
+                videoPoster
               });
             }
           }
