@@ -220,7 +220,72 @@ export class TwitterManager {
     document.getElementById("tweetDetailDisplayName").textContent = link.displayName || link.username;
     document.getElementById("tweetDetailHandle").textContent = link.handle;
     
-    document.getElementById("tweetDetailText").textContent = tweetText;
+    //document.getElementById("tweetDetailText").textContent = tweetText;
+    let tweetObj = null;
+    for (const t of link.tweets) {
+        if (t.text === tweetText && this.formatTwitterTime(t.time) === tweetTime) {
+        tweetObj = t;
+        break;
+        }
+    }
+
+    // Text rendering
+    const textEl = document.getElementById("tweetDetailText");
+    
+    // Clean media and retweet content
+    let nextEl = textEl.nextSibling;
+    while (nextEl) {
+        if (
+        nextEl.classList &&
+        (nextEl.classList.contains("tweet-detail-media") ||
+        nextEl.classList.contains("tweet-detail-retweet"))
+        ) {
+        const toRemove = nextEl;
+        nextEl = nextEl.nextSibling;
+        toRemove.remove();
+        } else {
+        nextEl = nextEl.nextSibling;
+        }
+    }
+
+    textEl.textContent = tweetText;
+
+    // Media rendering
+    let mediaHtml = "";
+    if (tweetObj && tweetObj.media && tweetObj.media.length > 0) {
+        mediaHtml += `<div class="tweet-detail-media">`;
+        tweetObj.media.forEach(src => {
+        if (src.match(/\.(mp4|webm)$/i)) {
+            mediaHtml += `<video src="${src}" controls style="max-width:100%;border-radius:10px;margin:8px 0;"></video>`;
+        } else {
+            mediaHtml += `<img src="${src}" style="max-width:100%;border-radius:10px;margin:8px 0;" />`;
+        }
+        });
+        mediaHtml += `</div>`;
+    }
+
+    // Retweets rendering
+    let retweetHtml = "";
+    if (tweetObj && tweetObj.isRetweet) {
+        retweetHtml += `<div class="tweet-detail-retweet" style="margin:12px 0;padding:10px 14px;background:rgba(0,240,255,0.06);border-radius:8px;">
+        <div style="font-size:13px;color:#00f0ff;font-weight:600;">Retweet from ${tweetObj.retweetUser}</div>
+        <div style="font-size:14px;color:#bff7ff;margin-top:4px;">${this.escapeHtml(tweetObj.retweetText)}</div>`;
+        if (tweetObj.retweetMedia && tweetObj.retweetMedia.length > 0) {
+        retweetHtml += `<div class="tweet-detail-media">`;
+        tweetObj.retweetMedia.forEach(src => {
+            if (src.match(/\.(mp4|webm)$/i)) {
+            retweetHtml += `<video src="${src}" controls style="max-width:100%;border-radius:10px;margin:8px 0;"></video>`;
+            } else {
+            retweetHtml += `<img src="${src}" style="max-width:100%;border-radius:10px;margin:8px 0;" />`;
+            }
+        });
+        retweetHtml += `</div>`;
+        }
+        retweetHtml += `</div>`;
+    }
+
+    textEl.insertAdjacentHTML("afterend", mediaHtml + retweetHtml);
+    
     document.getElementById("tweetDetailTime").textContent = tweetTime;
     
     const openBtn = document.getElementById("tweetDetailOpenBtn");
@@ -345,9 +410,53 @@ export class TwitterManager {
           const tweets = [];
           for (let j = 0; j < Math.min(5, tweetElements.length); j++) {
             const tweetEl = tweetElements[j];
+
+            // Retweet check
+            let isRetweet = false;
+            let retweetUser = "";
+            let retweetText = "";
+            let retweetMedia = [];
+
+            const retweetEl = tweetEl.querySelector('.retweet-header, .retweet-info');
+            if (retweetEl) {
+                isRetweet = true;
+                const userEl = retweetEl.querySelector('a');
+                if (userEl) retweetUser = userEl.textContent.trim();
+                const retweetContent = tweetEl.querySelector('.tweet-content');
+                if (retweetContent) retweetText = retweetContent.textContent.trim();
+                const retweetMediaEls = tweetEl.querySelectorAll('.attachments img, .attachments video');
+                retweetMedia = Array.from(retweetMediaEls).map(m => {
+                  let src = m.src;
+                  if (src.startsWith('chrome-extension://')) {
+                    const match = src.match(/\/pic\/(.+)$/);
+                    if (match) {
+                      src = instance + '/pic/' + match[1];
+                    }
+                  } else if (src.startsWith('/pic/')) {
+                    src = instance + src;
+                  }
+                  return src;
+                });
+            }
             
+            // Tweet contents
             const contentEl = tweetEl.querySelector('div.tweet-content');
             let text = contentEl ? contentEl.textContent.trim() : '';
+
+            // Attachments
+            const mediaEls = tweetEl.querySelectorAll('.attachments img, .attachments video');
+            const media = Array.from(mediaEls).map(m => {
+              let src = m.src;
+              if (src.startsWith('chrome-extension://')) {
+                const match = src.match(/\/pic\/(.+)$/);
+                if (match) {
+                  src = instance + '/pic/' + match[1];
+                }
+              } else if (src.startsWith('/pic/')) {
+                src = instance + src;
+              }
+              return src;
+            });
 
             let url = '';
             const linkEl = tweetEl.querySelector('a[href*="/status/"]');
@@ -373,7 +482,12 @@ export class TwitterManager {
               tweets.push({
                 text: text.slice(0, 300),
                 url: url,
-                time: time
+                time: time,
+                media,
+                isRetweet,
+                retweetUser,
+                retweetText,
+                retweetMedia
               });
             }
           }

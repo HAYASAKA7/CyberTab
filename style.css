@@ -752,6 +752,13 @@ html,body{
   justify-content: flex-end;
 }
 
+.tweet-detail-media img,
+.tweet-detail-media video {
+  max-width: 100%;
+  border-radius: 10px;
+  margin: 8px 0;
+}
+
 #tweetDetailOpenBtn {
   padding: 12px 24px;
   font-size: 14px;
