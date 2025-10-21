@@ -220,7 +220,6 @@ export class TwitterManager {
     document.getElementById("tweetDetailDisplayName").textContent = link.displayName || link.username;
     document.getElementById("tweetDetailHandle").textContent = link.handle;
     
-    //document.getElementById("tweetDetailText").textContent = tweetText;
     let tweetObj = null;
     for (const t of link.tweets) {
         if (t.text === tweetText && this.formatTwitterTime(t.time) === tweetTime) {
@@ -248,7 +247,37 @@ export class TwitterManager {
         }
     }
 
-    textEl.textContent = tweetText;
+    // Linkify links in tweet text
+    let displayText = this.escapeHtml(tweetText);
+
+    if (tweetObj && tweetObj.links && tweetObj.links.length > 0) {
+      tweetObj.links.forEach(l => {
+        const escapedText = this.escapeHtml(l.text);
+        let actualHref = this.restoreOriginalUrl(l.href);
+        // Fix hashtag links from Nitter
+        if (actualHref.includes('chrome-extension://') && actualHref.includes('search?q=%23')) {
+          const hashtagMatch = actualHref.match(/search\?q=%23(.+?)(?:&|$)/);
+          if (hashtagMatch) {
+            const tag = decodeURIComponent(hashtagMatch[1]);
+            actualHref = `https://x.com/hashtag/${encodeURIComponent(tag)}?src=hashtag_click`;
+          }
+        } else {
+          actualHref = this.restoreOriginalUrl(actualHref);
+        }
+        const escapedHref = actualHref.replace(/"/g, '&quot;');
+
+        // Replace the link text with clickable version (keeping original display text)
+        const linkPattern = escapedText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        displayText = displayText.replace(
+          new RegExp(linkPattern, 'g'),
+          `<a href="${escapedHref}" target="_blank" rel="noopener noreferrer">${escapedText}</a>`
+        );
+      });
+    }
+
+    displayText = this.linkifyText(displayText, false);
+
+    textEl.innerHTML = displayText;
 
     // Media rendering
     let mediaHtml = "";
@@ -311,6 +340,96 @@ export class TwitterManager {
 
     modal.classList.remove("hidden");
     modal.setAttribute("aria-hidden", "false");
+  }
+
+  restoreOriginalUrl(nitterUrl) {
+    if (!nitterUrl) return nitterUrl;
+    
+    try {
+      const url = new URL(nitterUrl);
+      
+      // Restore YouTube links from piped.video
+      if (url.hostname === 'piped.video') {
+        return 'https://www.youtube.com' + url.pathname + url.search;
+      }
+      
+      // Restore YouTube links from other Invidious instances
+      if (url.hostname.includes('invidious') || url.hostname.includes('yewtu.be')) {
+        return 'https://www.youtube.com' + url.pathname + url.search;
+      }
+      
+      // Restore Twitter/X links from nitter instances
+      if (url.hostname.includes('nitter')) {
+        const pathMatch = url.pathname.match(/^\/([^\/]+)/);
+        if (pathMatch) {
+          return 'https://x.com' + url.pathname + url.search;
+        }
+      }
+      
+      // Return original URL if no mapping found
+      return nitterUrl;
+    } catch (e) {
+      return nitterUrl;
+    }
+  }
+
+  linkifyText(text, doEscape = true) {
+    if (!text) return '';
+    const input = doEscape ? this.escapeHtml(text) : text;
+    
+    // Enhanced regex to match hashtags with full Unicode support
+    const tokenRegex = /((?:https?:\/\/|www\.)[^\s<"]+)|(@[a-zA-Z0-9_]{1,20})|(#[\p{L}\p{N}_]+)/gu;
+
+    return input.replace(tokenRegex, (match, url, mention, hash) => {
+      // Skip if already inside an anchor tag
+      const beforeMatch = input.substring(0, input.indexOf(match));
+      const openTags = (beforeMatch.match(/<a\s/gi) || []).length;
+      const closeTags = (beforeMatch.match(/<\/a>/gi) || []).length;
+      if (openTags > closeTags) return match;
+      
+      if (url) {
+        let href = url;
+        if (!/^https?:\/\//i.test(href)) href = 'http://' + href;
+        
+        // Remove trailing punctuation
+        const trailingMatch = href.match(/([.,!?;:]+)$/);
+        let trailing = '';
+        if (trailingMatch) {
+          trailing = trailingMatch[1];
+          href = href.slice(0, -trailing.length);
+        }
+
+        href = this.restoreOriginalUrl(href);
+        
+        // Create short display version
+        let displayUrl = url;
+        try {
+          const urlObj = new URL(href);
+          let hostname = urlObj.hostname;
+          let pathname = urlObj.pathname;
+          
+          // Replace piped.video with youtube.com in display
+          if (hostname === 'piped.video') {
+            hostname = 'youtube.com';
+          }
+          
+          displayUrl = hostname + (pathname !== '/' ? pathname.slice(0, 20) + (pathname.length > 20 ? '...' : '') : '');
+        } catch (e) {
+          // If URL parsing fails, also replace piped.video text
+          displayUrl = url.replace(/piped\.video/gi, 'youtube.com');
+          displayUrl = displayUrl.slice(0, 30) + (displayUrl.length > 30 ? '...' : '');
+        }
+        
+        return `<a href="${href.replace(/"/g, '&quot;')}" target="_blank" rel="noopener noreferrer">${this.escapeHtml(displayUrl)}</a>${trailing}`;
+      } else if (mention) {
+        const name = mention.slice(1);
+        return `<a href="https://x.com/${encodeURIComponent(name)}" target="_blank" rel="noopener noreferrer">@${this.escapeHtml(name)}</a>`;
+      } else if (hash) {
+        const tag = hash.slice(1);
+        return `<a href="https://x.com/hashtag/${encodeURIComponent(tag)}?src=hashtag_click" target="_blank" rel="noopener noreferrer">#${this.escapeHtml(tag)}</a>`;
+      }
+      return match;
+    });
   }
 
   async fetchTwitterAccount(accountId) {
@@ -443,6 +562,17 @@ export class TwitterManager {
             const contentEl = tweetEl.querySelector('div.tweet-content');
             let text = contentEl ? contentEl.textContent.trim() : '';
 
+            // Links in tweet
+            let links = [];
+            if (contentEl) {
+              contentEl.querySelectorAll('a').forEach(a => {
+                links.push({
+                  text: a.textContent.trim(),
+                  href: a.href
+                });
+              });
+            }
+
             // Attachments
             const mediaEls = tweetEl.querySelectorAll('.attachments img, .attachments video');
             const media = Array.from(mediaEls).map(m => {
@@ -487,7 +617,8 @@ export class TwitterManager {
                 isRetweet,
                 retweetUser,
                 retweetText,
-                retweetMedia
+                retweetMedia,
+                links
               });
             }
           }

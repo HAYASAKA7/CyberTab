@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "CyberTab",
-  "version": "1.2.7",
-  "description": "Cyberpunk new tab - no login, no ads. Add favorites as movable app icons.",
+  "version": "1.2.9",
+  "description": "Cyberpunk new tab - Cyberpunk style tab control and quick tweet access.",
   "chrome_url_overrides": { "newtab": "newtab.html" },
   "permissions": ["storage","bookmarks"],
   "host_permissions": [

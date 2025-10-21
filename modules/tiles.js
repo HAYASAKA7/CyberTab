@@ -66,13 +66,13 @@ export class TileManager {
 
     this.setupDragAndDrop(el, it);
 
-    el._wasDragged = false;
+    let wasDragged = false;
     el.addEventListener("pointerdown", e => {
-      el._wasDragged = false;
+      wasDragged = false;
     });
     el.addEventListener("pointermove", e => {
       if (el.dataset.dragging === "1") {
-        el._wasDragged = true;
+        wasDragged = true;
       }
     });
 

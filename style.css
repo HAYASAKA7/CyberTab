@@ -759,6 +759,53 @@ html,body{
   margin: 8px 0;
 }
 
+/* Tweet detail text link styles - add after existing tweet-detail-text styles */
+.tweet-detail-text a {
+  color: var(--neon-cyan);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(0, 240, 255, 0.3);
+  transition: all 0.2s ease;
+  padding-bottom: 1px;
+}
+
+.tweet-detail-text a:hover {
+  color: #ffffff;
+  border-bottom-color: var(--neon-pink);
+  text-shadow: 0 0 8px rgba(0, 240, 255, 0.5);
+}
+
+.tweet-detail-text a:active {
+  color: var(--neon-pink);
+}
+
+/* Twitter card tweet text link styles */
+.twitter-tweet-text a {
+  color: var(--neon-cyan);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(0, 240, 255, 0.2);
+  transition: all 0.2s ease;
+}
+
+.twitter-tweet-text a:hover {
+  color: #ffffff;
+  border-bottom-color: var(--neon-pink);
+  text-shadow: 0 0 6px rgba(0, 240, 255, 0.4);
+}
+
+/* Retweet content link styles */
+.tweet-detail-retweet a {
+  color: rgba(0, 240, 255, 0.9);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(0, 240, 255, 0.25);
+  transition: all 0.2s ease;
+}
+
+.tweet-detail-retweet a:hover {
+  color: #ffffff;
+  border-bottom-color: rgba(255, 45, 149, 0.8);
+  text-shadow: 0 0 8px rgba(0, 240, 255, 0.4);
+}
+
 #tweetDetailOpenBtn {
   padding: 12px 24px;
   font-size: 14px;
