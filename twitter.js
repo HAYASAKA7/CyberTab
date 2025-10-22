@@ -168,6 +168,42 @@ export class TwitterManager {
         }
       });
     });
+
+    // Add click handlers to open profile on avatar, username, and handle
+    container.querySelectorAll('.right-sidebar-card').forEach(card => {
+      const accountId = card.dataset.accountId;
+      const link = this.storageManager.quickLinks.find(l => l.id === accountId);
+      if (!link) return;
+      const url = `https://x.com/${link.username}`;
+
+      // Avatar
+      const avatar = card.querySelector('.twitter-avatar');
+      if (avatar) {
+        avatar.style.cursor = "pointer";
+        avatar.onclick = e => {
+          e.stopPropagation();
+          window.open(url, '_blank');
+        };
+      }
+      // Username
+      const username = card.querySelector('.twitter-username');
+      if (username) {
+        username.style.cursor = "pointer";
+        username.onclick = e => {
+          e.stopPropagation();
+          window.open(url, '_blank');
+        };
+      }
+      // Handle
+      const handle = card.querySelector('.twitter-handle');
+      if (handle) {
+        handle.style.cursor = "pointer";
+        handle.onclick = e => {
+          e.stopPropagation();
+          window.open(url, '_blank');
+        };
+      }
+    });
   }
 
   createTwitterCardHTML(link) {
@@ -218,6 +254,7 @@ export class TwitterManager {
   showTweetDetailModal(link, tweetText, tweetTime, tweetUrl) {
     const modal = document.getElementById("tweetDetailModal");
     const rightSidebar = document.getElementById("rightSidebar");
+    const url = `https://x.com/${link.username}`;
 
     if (rightSidebar) {
       rightSidebar.classList.add("disabled");
@@ -231,12 +268,38 @@ export class TwitterManager {
     } else {
       avatarImg.style.display = 'none';
     }
+    if (avatarImg) {
+      avatarImg.style.cursor = "pointer";
+      avatarImg.onclick = e => {
+        e.stopPropagation();
+        window.open(url, '_blank');
+      };
+    }
     
     const safeDisplayName = (link.displayName || link.username || '').replace(/[<>"']/g, '');
     const safeHandle = (link.handle || '').replace(/[<>"']/g, '');
     
     document.getElementById("tweetDetailDisplayName").textContent = safeDisplayName;
     document.getElementById("tweetDetailHandle").textContent = safeHandle;
+
+    const displayNameEl = document.getElementById("tweetDetailDisplayName");
+    const handleEl = document.getElementById("tweetDetailHandle");
+
+    if (displayNameEl) {
+      displayNameEl.style.cursor = "pointer";
+      displayNameEl.onclick = e => {
+        e.stopPropagation();
+        window.open(url, '_blank');
+      };
+    }
+
+    if (handleEl) {
+      handleEl.style.cursor = "pointer";
+      handleEl.onclick = e => {
+        e.stopPropagation();
+        window.open(url, '_blank');
+      };
+    }
     
     let tweetObj = null;
     for (const t of link.tweets) {

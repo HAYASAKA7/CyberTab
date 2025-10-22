@@ -1,149 +1,85 @@
-// Background proxy for cross-origin suggestion requests.
-// Listens for messages from the page and performs the fetch (host_permissions required in manifest).
+// Background image management module
 
-// Track failed instances with cooldown + response cache
-const instanceCooldowns = {};
-const instanceCache = {}; // Cache for successful responses
-const COOLDOWN_MS = 3000; // 3 seconds
-const CACHE_TTL = 300000; // 5 minutes cache validity
-
-function isInstanceOnCooldown(url) {
-  const instance = new URL(url).hostname;
-  if (!instanceCooldowns[instance]) return false;
-  
-  const now = Date.now();
-  if (now - instanceCooldowns[instance] > COOLDOWN_MS) {
-    delete instanceCooldowns[instance];
-    return false;
-  }
-  return true;
-}
-
-function markInstanceFailed(url) {
-  const instance = new URL(url).hostname;
-  instanceCooldowns[instance] = Date.now();
-}
-
-function getCachedResponse(url) {
-  const cached = instanceCache[url];
-  if (!cached) return null;
-  
-  const now = Date.now();
-  if (now - cached.time > CACHE_TTL) {
-    delete instanceCache[url];
-    return null;
-  }
-  return cached.data;
-}
-
-function setCachedResponse(url, data) {
-  instanceCache[url] = {
-    data: data,
-    time: Date.now()
-  };
-}
-
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (!message || message.type !== 'fetchSuggestions' || !message.url) {
-    sendResponse({ ok: false });
-    return;
+export class BackgroundManager {
+  constructor(storageManager) {
+    this.storageManager = storageManager;
+    this.pendingBackground = "";
   }
 
-  const cached = getCachedResponse(message.url);
-  if (cached) {
-    console.log(`[${message.url}] Using cached response`);
-    sendResponse({ ok: true, data: cached, fromCache: true });
-    return;
-  }
-
-  if (isInstanceOnCooldown(message.url)) {
-    if (cached) {
-      sendResponse({ ok: true, data: cached, fromCache: true });
+  applyBackground(src) {
+    if (!src) {
+      document.documentElement.style.setProperty('--custom-bg-image', 'none');
+      this.storageManager.backgroundImage = "";
       return;
     }
-    sendResponse({ ok: false, error: 'Instance on cooldown' });
-    return;
+    const escaped = src.replace(/"/g, '\\"');
+    document.documentElement.style.setProperty('--custom-bg-image', `url("${escaped}") center/cover no-repeat`);
+    this.storageManager.backgroundImage = src;
   }
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15000); // 增加到 15s
+  initializeUI() {
+    const backgroundUrlInput = document.getElementById("backgroundUrl");
+    const backgroundFileBtn = document.getElementById("backgroundFileBtn");
+    const backgroundFileInput = document.getElementById("backgroundFile");
+    const backgroundFileName = document.getElementById("backgroundFileName");
+    const backgroundClear = document.getElementById("backgroundClear");
 
-  fetch(message.url, { 
-    method: 'GET', 
-    cache: 'no-store',
-    signal: controller.signal,
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-      'Accept-Language': 'en-US,en;q=0.9',
-      'DNT': '1',
-      'Connection': 'keep-alive',
-      'Referer': 'https://nitter.net/',
-      'Upgrade-Insecure-Requests': '1'
-    },
-    redirect: 'follow',
-    credentials: 'omit'
-  })
-    .then(async resp => {
-      clearTimeout(timeoutId);
-      console.log(`[${message.url}] Status: ${resp.status}, Content-Length: ${resp.headers.get('content-length')}`);
+    this.pendingBackground = this.storageManager.backgroundImage || "";
 
-      if (!resp.ok) {
-        markInstanceFailed(message.url);
-        const cached = getCachedResponse(message.url);
-        if (cached) {
-          sendResponse({ ok: true, data: cached, fromCache: true });
-        } else {
-          sendResponse({ ok: false, status: resp.status });
-        }
-        return;
-      }
+    if (backgroundUrlInput) {
+      backgroundUrlInput.value = (this.pendingBackground && !this.pendingBackground.startsWith('data:')) 
+        ? this.pendingBackground : "";
+    }
 
-      let data;
-      
-      try {
-        data = await resp.text();
-        console.log(`[${message.url}] Response length: ${data.length}`);
-        
-        if (!data || data.trim().length === 0) {
-          markInstanceFailed(message.url);
-          const cached = getCachedResponse(message.url);
-          if (cached) {
-            console.log(`[${message.url}] Got empty response, using cached data`);
-            sendResponse({ ok: true, data: cached, fromCache: true });
-          } else {
-            sendResponse({ ok: false, error: 'Empty response body and no cache' });
-          }
+    if (backgroundFileBtn && backgroundFileInput) {
+      backgroundFileBtn.addEventListener("click", () => backgroundFileInput.click());
+      backgroundFileInput.addEventListener("change", async (e) => {
+        const f = e.target.files[0];
+        if (!f) return;
+        if (f.size > 10 * 1024 * 1024) { // 10MB
+          const msg = (typeof window.i18nManager !== "undefined" && window.i18nManager.getMessage)
+            ? window.i18nManager.getMessage("backgroundImageTooLarge") || "Picture must not exceed 10MB"
+            : "Picture must not exceed 10MB";
+          backgroundFileName.textContent = msg;
+          backgroundFileName.style.color = "#ff3ec9";
+          backgroundFileInput.value = "";
           return;
         }
-        
-        // Cache the successful response
-        setCachedResponse(message.url, data);
-        sendResponse({ ok: true, data });
-      } catch (parseError) {
-        console.error('Parse error:', parseError);
-        markInstanceFailed(message.url);
-        const cached = getCachedResponse(message.url);
-        sendResponse({ 
-          ok: cached ? true : false, 
-          data: cached || undefined,
-          fromCache: !!cached,
-          error: cached ? undefined : parseError.message 
-        });
-      }
-    })
-    .catch(err => {
-      clearTimeout(timeoutId);
-      console.error('Fetch error:', err);
-      markInstanceFailed(message.url);
-      const cached = getCachedResponse(message.url);
-      sendResponse({ 
-        ok: cached ? true : false, 
-        data: cached || undefined,
-        fromCache: !!cached,
-        error: cached ? undefined : err.message 
+        backgroundFileName.textContent = f.name;
+        backgroundFileName.style.color = "";
+        const reader = new FileReader();
+        reader.onload = () => {
+          this.pendingBackground = reader.result;
+        };
+        reader.readAsDataURL(f);
       });
-    });
+    }
 
-  return true;
-});
+    if (backgroundUrlInput) {
+      backgroundUrlInput.addEventListener("input", (e) => {
+        const v = e.target.value.trim();
+        this.pendingBackground = v || "";
+      });
+    }
+
+    if (backgroundClear) {
+      backgroundClear.addEventListener("click", () => {
+        this.pendingBackground = "";
+        if (backgroundUrlInput) backgroundUrlInput.value = "";
+        if (backgroundFileInput) {
+          backgroundFileInput.value = "";
+          backgroundFileName.textContent = "";
+        }
+        if (backgroundFileName) backgroundFileName.textContent = "";
+      });
+    }
+  }
+
+  applyPendingBackground() {
+    if (typeof this.pendingBackground !== "undefined") {
+      this.storageManager.backgroundImage = this.pendingBackground || "";
+      this.storageManager.saveBackground();
+      this.applyBackground(this.storageManager.backgroundImage);
+    }
+  }
+}
