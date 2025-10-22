@@ -21,6 +21,9 @@
   <!-- Sidebar menu -->
   <div id="sidebar" class="sidebar">
     <div class="sidebar-content">
+      <button id="homeBtn" class="btn ghost sidebar-home-btn" title="Project Home" data-i18n-title="homeButtonTitle">🏠
+        <span id="homeBtnDot" class="update-dot" style="display:none;"></span>
+      </button>
       <button id="addBtn" class="btn neon" data-i18n="addButton">＋ Add</button>
       <button id="resetBtn" class="btn ghost" data-i18n="resetButton">Reset</button>
       <button id="settingsBtn" class="btn ghost" data-i18n="settingsButton">Settings</button>
@@ -126,13 +129,13 @@
         </select>
       </label>
 
-      <!-- New: bookmark sync count setting -->
+      <!-- bookmark sync count setting -->
       <label>
         <span data-i18n="bookmarkSyncLabel">Sync bookmarks (max)</span>
         <input id="bookmarkSyncCount" type="number" min="0" max="50" step="1" value="5" />
       </label>
 
-      <!-- New: custom background controls -->
+      <!-- custom background controls -->
       <label>
         <span data-i18n="backgroundUrlLabel">Background Image (URL)</span>
         <input id="backgroundUrl" type="url" placeholder="https://example.com/bg.jpg" />

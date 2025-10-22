@@ -202,5 +202,14 @@
   },
   "retweetFrom":{
     "message": "Retweet from"
+  },
+  "backgroundImageTooLarge":{
+    "message": "Picture must not exceed 10MB!"
+  },
+  "homeButtonTitle": {
+    "message": "Project Home"
+  },
+  "homeButtonUpdateTitle": {
+    "message": "New version available!"
   }
 }

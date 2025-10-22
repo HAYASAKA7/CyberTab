@@ -202,5 +202,14 @@
   },
   "retweetFrom": {
     "message": "リツイート元"
+  },
+  "backgroundImageTooLarge":{
+    "message": "画像は10MBを超えてはいけません！"
+  },
+  "homeButtonTitle": {
+    "message": "プロジェクトホーム"
+  },
+  "homeButtonUpdateTitle": {
+    "message": "新しいバージョンがあります！"
   }
 }

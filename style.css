@@ -1746,6 +1746,36 @@ input::placeholder{
     border-radius: 0 0 12px 12px;
   }
 }
+/* Update info */
+.sidebar-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.sidebar-home-btn {
+  position: relative;
+  font-size: 22px;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.update-dot {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  width: 10px;
+  height: 10px;
+  background: #ff3366;
+  border-radius: 50%;
+  border: 2px solid #222c;
+  display: block;
+  pointer-events: none;
+}
 
 /* Cyberpunk custom scrollbar behavior
    - Default: hidden (to keep UI clean)

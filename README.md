@@ -20,6 +20,7 @@ A lightweight, privacy-friendly Chrome new tab extension with a cyberpunk theme.
 - Right-click context menu for tiles (edit icon, delete).
 - Right-click context menu for adding new tiles or switch on/off auto-align.
 - __BREAKING CHANGE in v1.2.0: Twitter feed sidebar using Nitter instances. You can add accounts in the settings, and you'll see the news feed from those accounts in the sidebar.__
+- Fetch accounts in batches to avoid rate limits.
 
 ## Important files
 

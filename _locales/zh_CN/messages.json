@@ -202,5 +202,14 @@
   },
   "retweetFrom": {
     "message": "转推自"
+  },
+  "backgroundImageTooLarge":{
+    "message": "图片不能超过10MB！"
+  },
+  "homeButtonTitle": {
+    "message": "项目主页"
+  },
+  "homeButtonUpdateTitle": {
+    "message": "有新版本可用！"
   }
 }

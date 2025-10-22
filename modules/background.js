@@ -36,7 +36,17 @@ export class BackgroundManager {
       backgroundFileInput.addEventListener("change", async (e) => {
         const f = e.target.files[0];
         if (!f) return;
+        if (f.size > 10 * 1024 * 1024) { // 10MB
+          const msg = (typeof window.i18nManager !== "undefined" && window.i18nManager.getMessage)
+            ? window.i18nManager.getMessage("backgroundImageTooLarge") || "Picture must not exceed 10MB"
+            : "Picture must not exceed 10MB";
+          backgroundFileName.textContent = msg;
+          backgroundFileName.style.color = "#ff3ec9";
+          backgroundFileInput.value = "";
+          return;
+        }
         backgroundFileName.textContent = f.name;
+        backgroundFileName.style.color = "";
         const reader = new FileReader();
         reader.onload = () => {
           this.pendingBackground = reader.result;

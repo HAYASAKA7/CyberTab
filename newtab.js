@@ -14,6 +14,7 @@ import { I18nManager } from './modules/i18n.js';
 import { BackgroundManager } from './modules/background.js';
 import { SettingsManager } from './modules/settings.js';
 import { UIManager } from './modules/ui.js';
+import { UpdateChecker } from './modules/update.js';
 
 // Initialize all managers
 const storageManager = new StorageManager();
@@ -137,13 +138,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
   fetchQuickLinksInBatches(storageManager.quickLinks);
-  // storageManager.quickLinks.forEach(link => {
-  //   if (link && link.id) {
-  //     twitterManager.fetchTwitterAccount(link.id);
-  //   }
-  // });
-  twitterManager.setupTwitterAutoRefresh((accountId) => {
-    twitterManager.fetchTwitterAccount(accountId);
+
+  twitterManager.setupTwitterAutoRefresh((accountIds) => {
+    //twitterManager.fetchTwitterAccount(accountId);
+    const links = storageManager.quickLinks.filter(link => accountIds.includes(link.id));
+    fetchQuickLinksInBatches(links);
   });
   
   // Apply background
@@ -172,6 +171,26 @@ document.addEventListener("DOMContentLoaded", async () => {
   suggestionManager.setCallbacks({
     onPerformSearch: (query) => searchManager.performSearch(query)
   });
+
+  // Update checker
+  const homeBtn = document.getElementById("homeBtn");
+  const homeBtnDot = document.getElementById("homeBtnDot");
+  const repo = "HAYASAKA7/CyberTab";
+  const updateChecker = new UpdateChecker({ repo, i18nManager });
+
+  if (homeBtn && homeBtnDot) {
+    const currentVersion = chrome.runtime.getManifest().version;
+    const hasUpdate = await updateChecker.check(currentVersion);
+    if (hasUpdate) {
+      homeBtnDot.style.display = "block";
+      homeBtn.title = updateChecker.getUpdateTitle();
+      homeBtn.onclick = () => window.open(updateChecker.latestReleaseUrl, "_blank");
+    } else {
+      homeBtnDot.style.display = "none";
+      homeBtn.title = updateChecker.getHomeTitle();
+      homeBtn.onclick = () => window.open(`https://github.com/${repo}`, "_blank");
+    }
+  }
 });
 
 function showTileContextMenu(x, y, itemId) {
