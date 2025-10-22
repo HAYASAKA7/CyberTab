@@ -4,8 +4,8 @@
 // Track failed instances with cooldown + response cache
 const instanceCooldowns = {};
 const instanceCache = {}; // Cache for successful responses
-const COOLDOWN_MS = 120000; // 120 seconds
-const CACHE_TTL = 600000; // 10 minutes cache validity
+const COOLDOWN_MS = 3000; // 3 seconds
+const CACHE_TTL = 300000; // 5 minutes cache validity
 
 function isInstanceOnCooldown(url) {
   const instance = new URL(url).hostname;

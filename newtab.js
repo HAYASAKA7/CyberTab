@@ -126,11 +126,22 @@ document.addEventListener("DOMContentLoaded", async () => {
   
   // Initialize Twitter
   twitterManager.renderTwitterCards();
-  storageManager.quickLinks.forEach(link => {
-    if (link && link.id) {
-      twitterManager.fetchTwitterAccount(link.id);
+  // Fetch Twitter accounts in batches to avoid rate limits
+  async function fetchQuickLinksInBatches(links, batchSize = 3, delayMs = 3000) {
+    for (let i = 0; i < links.length; i += batchSize) {
+      const batch = links.slice(i, i + batchSize);
+      await Promise.all(batch.map(link => twitterManager.fetchTwitterAccount(link.id)));
+      if (i + batchSize < links.length) {
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
     }
-  });
+  }
+  fetchQuickLinksInBatches(storageManager.quickLinks);
+  // storageManager.quickLinks.forEach(link => {
+  //   if (link && link.id) {
+  //     twitterManager.fetchTwitterAccount(link.id);
+  //   }
+  // });
   twitterManager.setupTwitterAutoRefresh((accountId) => {
     twitterManager.fetchTwitterAccount(accountId);
   });
