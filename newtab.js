@@ -128,13 +128,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Initialize Twitter
   twitterManager.renderTwitterCards();
   // Fetch Twitter accounts in batches to avoid rate limits
-  async function fetchQuickLinksInBatches(links, batchSize = 3, delayMs = 3000) {
-    for (let i = 0; i < links.length; i += batchSize) {
-      const batch = links.slice(i, i + batchSize);
-      await Promise.all(batch.map(link => twitterManager.fetchTwitterAccount(link.id)));
-      if (i + batchSize < links.length) {
-        await new Promise(resolve => setTimeout(resolve, delayMs));
-      }
+  async function fetchQuickLinksInBatches(links) {
+    // const toFetch = links.filter(link =>
+    //   !link.lastUpdate || Date.now() - link.lastUpdate > 5 * 60 * 1000 || link.error
+    // );
+    for (const link of links) {
+      await twitterManager.fetchTwitterAccount(link.id);
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
   }
   fetchQuickLinksInBatches(storageManager.quickLinks);

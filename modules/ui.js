@@ -391,6 +391,10 @@ export class UIManager {
       delete rightSidebar.dataset.lockOpen;
     }
 
+    // Reset scroll position
+    const content = modal && modal.querySelector('.tweet-detail-content');
+    if (content) content.scrollTop = 0;
+
     modal.classList.add("hidden");
     modal.setAttribute("aria-hidden", "true");
   }

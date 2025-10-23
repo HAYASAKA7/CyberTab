@@ -30,7 +30,7 @@ export class LayoutManager {
     const col = Math.round((left - this.currentLeftOffset) / GRID);
     const row = Math.round((top - TOP_OFFSET) / GRID);
     return {
-      col: Math.max(0, col),
+      col: Math.max(0, Math.min(col, this.currentMaxCols - 1)),
       row: Math.max(0, row)
     };
   }

@@ -302,11 +302,19 @@ export class TwitterManager {
     }
     
     let tweetObj = null;
-    for (const t of link.tweets) {
-        if (t.text === tweetText && this.formatTwitterTime(t.time) === tweetTime) {
-        tweetObj = t;
-        break;
-        }
+    // for (const t of link.tweets) {
+    //     if (t.text === tweetText && this.formatTwitterTime(t.time) === tweetTime) {
+    //     tweetObj = t;
+    //     break;
+    //     }
+    // }
+    if (tweetUrl) {
+      tweetObj = link.tweets.find(t => t.url === tweetUrl);
+    }
+    if (!tweetObj) {
+      tweetObj = link.tweets.find(
+        t => t.text === tweetText && this.formatTwitterTime(t.time) === tweetTime
+      );
     }
 
     // Text rendering
@@ -987,7 +995,7 @@ export class TwitterManager {
         )
         .map(link => link.id);
       if (idsToRefresh.length && fetchCallback) fetchCallback(idsToRefresh);
-    }, 60000);
+    }, 120000);
   }
 
   escapeHtml(s) { 
