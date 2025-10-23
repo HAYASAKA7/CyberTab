@@ -933,11 +933,15 @@ export class TwitterManager {
     }
     
     this.autoRefreshInterval = setInterval(() => {
-    const idsToRefresh = this.storageManager.quickLinks
-      .filter(link => link.lastUpdate && Date.now() - link.lastUpdate > 300000)
-      .map(link => link.id);
-    if (idsToRefresh.length && fetchCallback) fetchCallback(idsToRefresh);
-  }, 60000);
+      const now = Date.now();
+      const idsToRefresh = this.storageManager.quickLinks
+        .filter(link =>
+          (link.lastUpdate && now - link.lastUpdate > 300000) ||
+          (link.error && (!link.lastUpdate || now - link.lastUpdate > 30000))
+        )
+        .map(link => link.id);
+      if (idsToRefresh.length && fetchCallback) fetchCallback(idsToRefresh);
+    }, 60000);
   }
 
   escapeHtml(s) { 
