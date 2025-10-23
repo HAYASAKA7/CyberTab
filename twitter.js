@@ -302,11 +302,19 @@ export class TwitterManager {
     }
     
     let tweetObj = null;
-    for (const t of link.tweets) {
-        if (t.text === tweetText && this.formatTwitterTime(t.time) === tweetTime) {
-        tweetObj = t;
-        break;
-        }
+    // for (const t of link.tweets) {
+    //     if (t.text === tweetText && this.formatTwitterTime(t.time) === tweetTime) {
+    //     tweetObj = t;
+    //     break;
+    //     }
+    // }
+    if (tweetUrl) {
+      tweetObj = link.tweets.find(t => t.url === tweetUrl);
+    }
+    if (!tweetObj) {
+      tweetObj = link.tweets.find(
+        t => t.text === tweetText && this.formatTwitterTime(t.time) === tweetTime
+      );
     }
 
     // Text rendering
@@ -458,7 +466,7 @@ export class TwitterManager {
 
     const oldStats = tweetDetailTimeEl.parentElement.querySelectorAll('.tweet-detail-stats');
     oldStats.forEach(el => el.remove());
-    
+
     let statsHtml = "";
     if (tweetObj) {
       statsHtml = `
@@ -827,8 +835,11 @@ export class TwitterManager {
             if (dateEl) {
               const title = dateEl.getAttribute('title');
               if (title) {
-                const dateStr = title.replace(' UTC', '').replace('·', '').trim();
-                const parsedTime = new Date(dateStr).getTime();
+                let dateStr = title.replace('·', '').replace(/\s+UTC$/, ' UTC').trim();
+                let parsedTime = Date.parse(dateStr);
+                if (isNaN(parsedTime)) {
+                  parsedTime = Date.parse(dateStr.replace(' UTC', 'Z'));
+                }
                 if (!isNaN(parsedTime) && parsedTime > 0) {
                   time = parsedTime;
                 }
