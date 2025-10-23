@@ -454,6 +454,34 @@ export class TwitterManager {
     
     document.getElementById("tweetDetailTime").textContent = tweetTime;
     
+    const tweetDetailTimeEl = document.getElementById("tweetDetailTime");
+
+    const oldStats = tweetDetailTimeEl.parentElement.querySelectorAll('.tweet-detail-stats');
+    oldStats.forEach(el => el.remove());
+    
+    let statsHtml = "";
+    if (tweetObj) {
+      statsHtml = `
+        <div class="tweet-detail-stats" style="display:flex;gap:24px;margin:8px 0 0 0;align-items:center;">
+          <span title="Comments" style="display:flex;align-items:center;gap:4px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="vertical-align:middle;"><path d="M12 3C6.48 3 2 6.58 2 11c0 1.85.81 3.55 2.19 4.9-.13.98-.56 2.09-1.53 3.1-.2.21-.25.52-.13.78.12.26.39.41.67.36 2.19-.37 3.77-1.19 4.74-1.8C9.7 18.97 10.83 19 12 19c5.52 0 10-3.58 10-8s-4.48-8-10-8z" fill="#9ff0ff"/></svg>
+            <span>${tweetObj.comments || 0}</span>
+          </span>
+          <span title="Retweets" style="display:flex;align-items:center;gap:4px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="vertical-align:middle;"><path d="M23 7l-7-7v4H6c-2.76 0-5 2.24-5 5v5h2V9c0-1.65 1.35-3 3-3h10v4l7-7zM1 17l7 7v-4h10c2.76 0 5-2.24 5-5v-5h-2v5c0 1.65-1.35 3-3 3H8v-4l-7 7z" fill="#00f0ff"/></svg>
+            <span>${tweetObj.retweets || 0}</span>
+          </span>
+          <span title="Likes" style="display:flex;align-items:center;gap:4px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="vertical-align:middle;"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41 1.01 4.5 2.09C13.09 4.01 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#ff2d95"/></svg>
+            <span>${tweetObj.likes || 0}</span>
+          </span>
+        </div>
+      `;
+    } else {
+      statsHtml = "";
+    }
+    tweetDetailTimeEl.insertAdjacentHTML('afterend', statsHtml);
+
     const openBtn = document.getElementById("tweetDetailOpenBtn");
     openBtn.onclick = () => {
       let xUrl = "";
@@ -844,6 +872,17 @@ export class TwitterManager {
                 }
               }
             }
+
+            const statEls = tweetEl.querySelectorAll('.tweet-stats .tweet-stat');
+            let comments = 0, retweets = 0, quotes = 0, likes = 0;
+            statEls.forEach(statEl => {
+              const icon = statEl.querySelector('.icon-container > span');
+              const num = parseInt(statEl.textContent.replace(/[^\d]/g, ''), 10) || 0;
+              if (icon && icon.classList.contains('icon-comment')) comments = num;
+              if (icon && icon.classList.contains('icon-retweet')) retweets = num;
+              if (icon && icon.classList.contains('icon-quote')) quotes = num;
+              if (icon && icon.classList.contains('icon-heart')) likes = num;
+            });
             
             if (text && text.length > 0) {
               tweets.push({
@@ -857,7 +896,11 @@ export class TwitterManager {
                 retweetMedia,
                 links,
                 videoUrl,
-                videoPoster
+                videoPoster,
+                comments,
+                retweets,
+                quotes,
+                likes
               });
             }
           }

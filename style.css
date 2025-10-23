@@ -738,7 +738,7 @@ html,body{
   border-top: 1px solid rgba(0,240,255,0.12);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 6px;
 }
 
 .tweet-detail-time {
@@ -1775,6 +1775,16 @@ input::placeholder{
   border: 2px solid #222c;
   display: block;
   pointer-events: none;
+}
+
+/* Tweet Stats */
+.tweet-detail-stats {
+  font-size: 15px;
+  color: #bff7ff;
+  user-select: none;
+}
+.tweet-detail-stats svg {
+  opacity: 0.85;
 }
 
 /* Cyberpunk custom scrollbar behavior
