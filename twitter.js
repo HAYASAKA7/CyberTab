@@ -762,7 +762,7 @@ export class TwitterManager {
           }
           
           const tweets = [];
-          for (let j = 0; j < Math.min(5, tweetElements.length); j++) {
+          for (let j = 0; j < Math.min(8, tweetElements.length); j++) {
             const tweetEl = tweetElements[j];
 
             // Retweet check
@@ -995,7 +995,7 @@ export class TwitterManager {
         )
         .map(link => link.id);
       if (idsToRefresh.length && fetchCallback) fetchCallback(idsToRefresh);
-    }, 60000);
+    }, 120000);
   }
 
   escapeHtml(s) { 
