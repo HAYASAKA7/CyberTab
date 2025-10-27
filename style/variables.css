@@ -1,0 +1,13 @@
+/* Theme color and global vars */
+:root{
+  --neon-pink:#ff2d95;
+  --neon-cyan:#00f0ff;
+  --neon-purple:#b537ff;
+  --bg-1:#07020a;
+  --bg-2:#0a0513;
+  --glass: rgba(255,255,255,0.03);
+  --card-bg: rgba(6,8,12,0.32);
+  --muted:#9fb0c7;
+  --custom-bg-image: none;
+  --blob-scale: 3;
+}

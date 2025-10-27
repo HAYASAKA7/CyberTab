@@ -1,0 +1,118 @@
+/* Buttons */
+.btn{
+  padding:10px 18px;
+  border-radius:10px;
+  border:1px solid rgba(255,255,255,0.04);
+  cursor:pointer;
+  font-weight:700;
+  font-size:14px;
+  background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.05));
+  color:#e6fbff;
+  box-shadow:0 6px 20px rgba(0,0,0,0.6), 0 0 12px rgba(0,240,255,0.03) inset;
+  transition:transform .15s, box-shadow .15s;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  text-decoration:none;
+}
+
+.btn:hover{
+  transform:translateY(-2px);
+  box-shadow:0 8px 24px rgba(0,0,0,0.7), 0 0 18px rgba(0,240,255,0.05) inset;
+}
+
+.btn:active{
+  transform:translateY(1px);
+}
+
+.btn.neon{
+  background:linear-gradient(90deg,var(--neon-cyan),var(--neon-pink));
+  color:#041218;
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: 
+    0 8px 30px rgba(255,45,149,0.18), 
+    0 0 30px rgba(0,240,255,0.12);
+  font-weight:800;
+  letter-spacing:0.8px;
+}
+
+.btn.neon:hover{
+  box-shadow: 
+    0 12px 36px rgba(255,45,149,0.28), 
+    0 0 40px rgba(0,240,255,0.18);
+}
+
+.btn.ghost{
+  border:1px solid rgba(0,240,255,0.12);
+  background:transparent;
+  color:var(--neon-cyan);
+}
+
+.btn.ghost:hover{
+  background:rgba(0,240,255,0.06);
+  border-color:rgba(0,240,255,0.24);
+}
+
+/* New icon options styles */
+.icon-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.icon-option {
+  text-align: left;
+  justify-content: flex-start;
+}
+
+.edit-icon-card {
+  min-width: 380px;
+}
+
+/* File picker styling to match cyberpunk theme */
+.file-picker{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  margin-top:8px;
+}
+
+.file-name{
+  color:var(--muted);
+  font-size:13px;
+  max-width:220px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  pointer-events:none; /* prevent clicks on filename from triggering file picker */
+}
+
+/* Language select: cyberpunk-styled */
+#languageSelect {
+  background: linear-gradient(90deg,var(--neon-cyan),var(--neon-pink));
+  color: #0094d3;
+  font-weight:800;
+  border-radius:8px;
+  padding:8px 12px;
+  border:1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 8px 30px rgba(255,45,149,0.08), 0 0 18px rgba(0,240,255,0.06) inset;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+/* ensure options inherit readable colors where supported */
+#languageSelect option {
+  color: #041218;
+  background: white;
+}
+
+/* small caret fix: add a pseudo caret for consistent look */
+#languageSelect {
+  background-image: linear-gradient(90deg, rgba(255,255,255,0.0), rgba(255,255,255,0.0)),
+                    url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12"><polygon points="0,0 12,0 6,8" fill="%23041218"/></svg>');
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 12px 12px;
+}

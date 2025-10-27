@@ -1,0 +1,124 @@
+/* Responsive */
+@media (max-width: 768px) {
+  .bar{
+    padding:14px 18px;
+  }
+  
+  .brand{
+    font-size:16px;
+  }
+  
+  .menu-toggle{
+    width:28px;
+    height:28px;
+  }
+  
+  .hamburger-line{
+    width:18px;
+    margin:2px 0;
+  }
+  
+  .sidebar{
+    width:240px;
+  }
+  
+  .sidebar.open{
+    transform:translateX(240px);
+  }
+  
+  .sidebar-content{
+    padding:70px 20px 20px;
+  }
+  
+  .sidebar-content .btn{
+    padding:12px 16px;
+    font-size:14px;
+  }
+  
+  .search-container{
+    padding:24px 18px 20px;
+  }
+  
+  .search-box{
+    max-width:100%;
+  }
+  
+  .engine-btn{
+    padding:0 12px;
+  }
+  
+  .engine-name{
+    display:none;
+  }
+  
+  .search-input{
+    padding:14px 16px;
+    font-size:14px;
+  }
+  
+  .search-btn{
+    padding:0 16px;
+  }
+  
+  .board{
+    height:calc(100vh - 62px - 80px);
+    padding:0;
+  }
+  
+  .tile{
+    width:100px;
+    height:100px;
+  }
+  
+  .icon{
+    width:52px;
+    height:52px;
+    font-size:22px;
+  }
+  
+  .title{
+    font-size:12px;
+  }
+  
+  .card{
+    min-width:90vw;
+    padding:20px 24px;
+  }
+  
+  .settings-card{
+    min-width:85vw;
+  }
+  
+  .context-menu{
+    min-width:160px;
+  }
+  
+  .settings-actions{
+    flex-direction:column;
+    gap:8px;
+  }
+
+  .suggestions{
+    max-width:90vw;
+    left:5%;
+    right:5%;
+    top: calc(100% + 8px);
+    border-radius: 12px;
+    background: linear-gradient(180deg, rgba(10,15,25,0.94), rgba(5,8,15,0.96));
+    backdrop-filter: blur(16px) saturate(150%);
+    -webkit-backdrop-filter: blur(18px) saturate(145%);
+  }
+  
+  .suggestion-item{
+    padding:10px 16px;
+    font-size:14px;
+  }
+  
+  .suggestion-item:first-child {
+    border-radius: 12px 12px 0 0;
+  }
+  
+  .suggestion-item:last-child {
+    border-radius: 0 0 12px 12px;
+  }
+}

@@ -1,0 +1,69 @@
+/* Board */
+.board{
+  position:relative;
+  height:calc(100vh - 76px - 92px);
+  overflow:auto;
+  padding:0;
+}
+
+/* Icon tiles - Windows desktop style */
+.tile{
+  position:absolute;
+  width:120px;
+  height:120px;
+  border-radius:16px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  user-select:none;
+  touch-action:none;
+  cursor:pointer;
+  background:linear-gradient(180deg,rgba(255,255,255,0.04),rgba(0,0,0,0.2));
+  border:1px solid rgba(0,240,255,0.08);
+  box-shadow:
+    0 12px 36px rgba(0,0,0,0.7),
+    0 0 28px rgba(0,240,255,0.03) inset;
+  backdrop-filter: blur(6px) saturate(110%);
+  transition:all .2s ease;
+}
+
+.tile:hover{
+  transform:translateY(-4px);
+  box-shadow:
+    0 16px 48px rgba(0,0,0,0.8),
+    0 0 36px rgba(0,240,255,0.08) inset;
+  border-color:rgba(0,240,255,0.16);
+}
+
+.icon{
+  width:64px;
+  height:64px;
+  border-radius:14px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:26px;
+  font-weight:900;
+  margin-bottom:10px;
+  color:#041218;
+  text-shadow:0 2px 8px rgba(0,0,0,0.4);
+  background:linear-gradient(135deg,var(--neon-cyan),var(--neon-pink));
+  box-shadow:
+    0 8px 24px rgba(0,0,0,0.6),
+    0 0 20px rgba(255,45,149,0.12) inset;
+  pointer-events:none;
+}
+
+.title{
+  font-size:13px;
+  font-weight:600;
+  color:#bff7ff;
+  text-align:center;
+  max-width:100px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  text-shadow:0 0 8px rgba(0,240,255,0.12);
+  pointer-events:none;
+}

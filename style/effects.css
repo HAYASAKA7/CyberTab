@@ -1,0 +1,113 @@
+/* Background effects */
+.vfx{
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  mix-blend-mode:screen;
+  background-image: linear-gradient(transparent 92%, rgba(255,255,255,0.012) 93%);
+  opacity:0.9;
+  animation: drift 12s linear infinite;
+  backdrop-filter: blur(2px);
+}
+
+/* Adjusted background blobs: cap size with viewport units and place blobs inside visible area */
+.bg-blobs{
+  position:absolute;
+  /* allow some overflow but bounded by viewport (vmin helps across portrait/landscape) */
+  inset: calc(-12vmin);
+  pointer-events:none;
+  /* gentler blur that scales but is capped so it doesn't become huge */
+  filter: blur(calc(6px * var(--blob-scale))) saturate(160%) contrast(120%);
+  mix-blend-mode:screen;
+  opacity:1;
+}
+
+/* Blob base */
+.bg-blobs .blob{
+  position:absolute;
+  border-radius:50%;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(0,240,255,0.98) 0%, rgba(0,240,255,0.45) 28%, transparent 52%),
+    radial-gradient(circle at 70% 70%, rgba(255,45,149,0.98) 0%, rgba(255,45,149,0.36) 28%, transparent 52%);
+  opacity:0.55;
+  will-change:transform;
+  /* keep edges soft but bounded */
+  filter: blur(calc(3px * var(--blob-scale)));
+  /* Explicit initial state: same as 0% in keyframes so animation cycles back cleanly */
+  transform: translate(0vmin, 0vmin) rotate(0deg) scale(1);
+}
+
+/* Make each blob size/position scale with --blob-scale but clamp to viewport so they stay visible */
+.bg-blobs .b1{
+  width: min(calc(780px * var(--blob-scale)), 80vmin);
+  height: min(calc(780px * var(--blob-scale)), 80vmin);
+  /* place near top-left but inside viewport */
+  left: calc(2vw - 4vmin);
+  top: calc(2vh - 4vmin);
+  animation: orbit1 11s ease-in-out infinite;
+  animation-delay: -1s;
+}
+.bg-blobs .b2{
+  width: min(calc(620px * var(--blob-scale)), 66vmin);
+  height: min(calc(620px * var(--blob-scale)), 66vmin);
+  /* place near bottom-right but inside viewport */
+  right: calc(2vw - 4vmin);
+  bottom: calc(6vh - 4vmin);
+  animation: orbit2 13s ease-in-out infinite;
+  animation-delay: -2s;
+}
+.bg-blobs .b3{
+  width: min(calc(460px * var(--blob-scale)), 48vmin);
+  height: min(calc(460px * var(--blob-scale)), 48vmin);
+  /* center-right-ish so it's visible on most screens */
+  left: calc(40vw - 8vmin);
+  bottom: calc(18vh - 4vmin);
+  animation: orbit3 9s ease-in-out infinite;
+  animation-delay: -3s;
+  opacity:0.64;
+}
+
+.bg-blobs .b4{
+  width: min(calc(540px * var(--blob-scale)), 56vmin);
+  height: min(calc(540px * var(--blob-scale)), 56vmin);
+  /* place near top-right but inside viewport */
+  left: calc(68vw - 10vmin);
+  top: calc(8vh - 4vmin);
+  animation: orbit4 10s ease-in-out infinite;
+  animation-delay: -1.5s;
+  opacity:0.6;
+}
+
+/* Elliptical orbit keyframes (use vmin + --blob-scale so motion adapts to viewport and scale)
+   IMPORTANT: 0% and 100% are identical so each full cycle returns to the initial state. */
+@keyframes orbit1 {
+  0%   { transform: translate(0vmin, 0vmin) rotate(0deg) scale(1); }
+  25%  { transform: translate(calc(8vmin * var(--blob-scale)), calc(-6vmin * var(--blob-scale))) rotate(20deg) scale(1.02); }
+  50%  { transform: translate(0vmin, calc(-12vmin * var(--blob-scale))) rotate(40deg) scale(0.98); }
+  75%  { transform: translate(calc(-8vmin * var(--blob-scale)), calc(-6vmin * var(--blob-scale))) rotate(60deg) scale(1.01); }
+  100% { transform: translate(0vmin, 0vmin) rotate(0deg) scale(1); }
+}
+
+@keyframes orbit2 {
+  0%   { transform: translate(0vmin, 0vmin) rotate(0deg) scale(1); }
+  20%  { transform: translate(calc(-10vmin * var(--blob-scale)), calc(6vmin * var(--blob-scale))) rotate(-18deg) scale(1.03); }
+  50%  { transform: translate(calc(-20vmin * var(--blob-scale)), 0vmin) rotate(-36deg) scale(0.97); }
+  80%  { transform: translate(calc(-10vmin * var(--blob-scale)), calc(-6vmin * var(--blob-scale))) rotate(-54deg) scale(1.02); }
+  100% { transform: translate(0vmin, 0vmin) rotate(0deg) scale(1); }
+}
+
+@keyframes orbit3 {
+  0%   { transform: translate(0vmin, 0vmin) rotate(0deg) scale(1); }
+  25%  { transform: translate(calc(6vmin * var(--blob-scale)), calc(4vmin * var(--blob-scale))) rotate(12deg) scale(1.01); }
+  50%  { transform: translate(calc(12vmin * var(--blob-scale)), calc(8vmin * var(--blob-scale))) rotate(24deg) scale(0.99); }
+  75%  { transform: translate(calc(6vmin * var(--blob-scale)), calc(-2vmin * var(--blob-scale))) rotate(36deg) scale(1.00); }
+  100% { transform: translate(0vmin, 0vmin) rotate(0deg) scale(1); }
+}
+
+@keyframes orbit4 {
+  0%   { transform: translate(0vmin, 0vmin) rotate(0deg) scale(1); }
+  20%  { transform: translate(calc(10vmin * var(--blob-scale)), calc(-4vmin * var(--blob-scale))) rotate(14deg) scale(1.02); }
+  50%  { transform: translate(calc(18vmin * var(--blob-scale)), calc(6vmin * var(--blob-scale))) rotate(28deg) scale(0.98); }
+  80%  { transform: translate(calc(6vmin * var(--blob-scale)), calc(10vmin * var(--blob-scale))) rotate(42deg) scale(1.01); }
+  100% { transform: translate(0vmin, 0vmin) rotate(0deg) scale(1); }
+}

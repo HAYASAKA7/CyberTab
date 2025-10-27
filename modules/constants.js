@@ -1,7 +1,7 @@
 // Constant definitions
 
 export const GRID = 140; // snap grid (tile width + gap)
-export const SIDE_MARGIN = 32 * 8; // left/right margin
+export const SIDE_MARGIN = 32 * 20; // left/right margin
 export const TOP_OFFSET = 32; // top offset
 export const TILE_SIZE = 120; // tile width/height
 
