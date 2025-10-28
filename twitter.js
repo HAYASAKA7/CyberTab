@@ -218,6 +218,7 @@ export class TwitterManager {
     if (link.error) {
       contentHTML = `<div class="twitter-card-error">${this.escapeHtml(link.error)}</div>`;
     } else if (link.tweets && link.tweets.length > 0) {
+      //const sortedTweets = link.tweets.slice().sort((a, b) => b.time - a.time);
       contentHTML = `
         <div class="twitter-tweets">
           ${link.tweets.map(tweet => `

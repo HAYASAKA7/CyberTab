@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "CyberTab",
-  "version": "1.3.12",
+  "version": "1.3.13",
   "description": "Cyberpunk new tab - Cyberpunk style tab control and quick tweet access.",
   "chrome_url_overrides": { "newtab": "newtab.html" },
   "permissions": ["storage","bookmarks"],
