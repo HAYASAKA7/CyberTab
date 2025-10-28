@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "CyberTab",
-  "version": "1.3.13",
+  "version": "1.3.14",
   "description": "Cyberpunk new tab - Cyberpunk style tab control and quick tweet access.",
   "chrome_url_overrides": { "newtab": "newtab.html" },
   "permissions": ["storage","bookmarks"],
@@ -19,10 +19,10 @@
   "background": {
     "service_worker": "background.js"
   },
-  "icons": { "16": "icons/icon48.png", "48": "icons/icon48.png", "128": "icons/icon128.png" },
+  "icons": { "16": "icons/icon16.png", "48": "icons/icon48.png", "128": "icons/icon128.png" },
   "action": {
     "default_icon": {
-      "16": "icons/icon48.png",
+      "16": "icons/icon16.png",
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
     },
