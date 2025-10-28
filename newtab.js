@@ -47,10 +47,15 @@ const contextMenuManager = new ContextMenuManager(i18nManager, {
     settingsManager.showEditIconModal(itemId);
   },
   onDeleteItem: (itemId) => {
+    const it = storageManager.items.find(it => it.id === itemId);
+    if (it && it.bookmarkId) {
+      bookmarkManager.markBookmarkUrlDeleted(it.url);
+    }
     storageManager.items = storageManager.items.filter(it => it.id !== itemId);
     storageManager.save();
     tileManager.renderAll(showTileContextMenu);
     tileManager.autoAlignTiles();
+    bookmarkManager.loadBookmarks(storageManager.bookmarkSyncCount);
   },
   onShowAddModal: () => {
     const modal = document.getElementById("modal");
@@ -66,6 +71,15 @@ const contextMenuManager = new ContextMenuManager(i18nManager, {
     storageManager.autoAlign = !storageManager.autoAlign;
     storageManager.saveAutoAlign();
     tileManager.autoAlignTiles();
+  },
+  onResyncBookmarks: async () => {
+    if (bookmarkManager.clearDeletedBookmarkUrls) {
+      bookmarkManager.clearDeletedBookmarkUrls();
+    }
+    await bookmarkManager.loadBookmarks(storageManager.bookmarkSyncCount);
+    tileManager.renderAll(showTileContextMenu);
+    tileManager.autoAlignTiles();
+    tileManager.fetchMissingFavicons();
   }
 });
 
