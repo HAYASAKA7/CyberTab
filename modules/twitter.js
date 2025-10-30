@@ -944,6 +944,7 @@ export class TwitterManager {
       link.loading = false;
       link.error = error.message || 'Failed to load tweets';
       link.lastUpdate = Date.now();
+      link.lastErrorRetry = Date.now();
       this.storageManager.saveQuickLinks();
       this.renderTwitterCards();
     }
@@ -991,7 +992,7 @@ export class TwitterManager {
       const idsToRefresh = this.storageManager.quickLinks
         .filter(link =>
           (link.lastUpdate && now - link.lastUpdate > 300000) ||
-          (link.error && (!link.lastUpdate || now - link.lastUpdate > 30000))
+          (link.error && (!link.lastErrorRetry || now - link.lastErrorRetry > 30000))
         )
         .map(link => link.id);
       if (idsToRefresh.length && fetchCallback) fetchCallback(idsToRefresh);

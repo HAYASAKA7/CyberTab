@@ -1,13 +1,72 @@
 /* Theme color and global vars */
-:root{
-  --neon-pink:#ff2d95;
-  --neon-cyan:#00f0ff;
-  --neon-purple:#b537ff;
-  --bg-1:#07020a;
-  --bg-2:#0a0513;
+:root {
+  --neon-pink: #ff2d95;
+  --neon-cyan: #00f0ff;
+  --neon-purple: #b537ff;
+  --bg-1: #07020a;
+  --bg-2: #0a0513;
   --glass: rgba(255,255,255,0.03);
   --card-bg: rgba(6,8,12,0.32);
-  --muted:#9fb0c7;
+  --muted: #9fb0c7;
   --custom-bg-image: none;
   --blob-scale: 3;
+
+  /* Header/Brand */
+  --brand-shadow1: 0 0 12px rgba(255,45,149,0.35);
+  --brand-shadow2: 0 0 28px rgba(0,240,255,0.12);
+
+  /* Sidebar/Modal/Tile/Quicklinks */
+  --sidebar-bg: linear-gradient(180deg,rgba(2,6,10,0.95),rgba(3,9,14,0.9));
+  --sidebar-border: 1px solid rgba(0,240,255,0.12);
+  --sidebar-shadow: 4px 0 20px rgba(0,0,0,0.8);
+  --sidebar-overlay-bg: rgba(0,0,0,0.4);
+
+  --modal-bg: linear-gradient(180deg,rgba(0,0,0,0.6),rgba(0,0,0,0.8));
+  --modal-shadow: 0 30px 80px rgba(0,0,0,0.8), 0 0 40px rgba(0,240,255,0.06) inset;
+
+  --tile-bg: linear-gradient(180deg,rgba(255,255,255,0.04),rgba(0,0,0,0.2));
+  --tile-border: 1px solid rgba(0,240,255,0.08);
+  --tile-shadow: 0 12px 36px rgba(0,0,0,0.7), 0 0 28px rgba(0,240,255,0.03) inset;
+
+  --quicklink-bg: rgba(0,0,0,0.2);
+  --quicklink-border: 1px solid rgba(0,240,255,0.12);
+  --quicklink-hover-bg: rgba(0,240,255,0.06);
+
+  /* Twitter */
+  --twitter-card-bg: linear-gradient(180deg,rgba(2,6,10,0.98),rgba(3,9,14,0.95));
+  --twitter-border: 1px solid rgba(0,240,255,0.18);
+  --twitter-shadow: 0 40px 100px rgba(0,0,0,0.9), 0 0 40px rgba(0,240,255,0.08) inset;
+  --twitter-link: var(--neon-cyan);
+  --twitter-link-hover: #ffffff;
+  --twitter-link-active: var(--neon-pink);
+
+  /* Search/Suggestions */
+  --search-bg: linear-gradient(180deg,rgba(255,255,255,0.04),rgba(0,0,0,0.2));
+  --search-border: 1px solid rgba(0,240,255,0.12);
+  --search-shadow: 0 12px 36px rgba(0,0,0,0.7), 0 0 28px rgba(0,240,255,0.04) inset;
+  --suggestion-hover-bg: linear-gradient(90deg, rgba(0,240,255,0.15), rgba(0,200,220,0.12));
+  --suggestion-border: 1px solid rgba(0,240,255,0.18);
+
+  /* Buttons */
+  --btn-bg: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.05));
+  --btn-border: 1px solid rgba(255,255,255,0.04);
+  --btn-hover-bg: rgba(255,255,255,0.05);
+  --btn-neon-bg: linear-gradient(90deg,var(--neon-cyan),var(--neon-pink));
+  --btn-ghost-border: 1px solid rgba(0,240,255,0.12);
+
+  /* Misc */
+  --update-dot: #ff3366;
+  --update-dot-border: 2px solid #222c;
+  --scrollbar-thumb: rgba(0,240,255,0.2);
+  --scrollbar-thumb-hover: rgba(0,240,255,0.35);
+  --scrollbar-track: transparent;
+  --context-hover-bg: rgba(255,45,149,0.12);
+  --context-active-bg: rgba(255,45,149,0.2);
+
+  /* Text */
+  --text-main: #e6f6ff;
+  --text-muted: #bff7ff;
+  --text-link: var(--neon-cyan);
+  --text-link-hover: #ffffff;
+  --text-link-active: var(--neon-pink);
 }

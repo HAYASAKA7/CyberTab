@@ -5,13 +5,19 @@ export class TileManager {
     this.layoutManager = layoutManager;
     this.iconManager = iconManager;
     this.storageManager = storageManager;
+    this.onShowContextMenu = null;
+  }
+
+  setContextMenuCallback(cb) {
+    this.onShowContextMenu = cb;
   }
 
   renderAll(onShowContextMenu) {
+    if (onShowContextMenu) this.onShowContextMenu = onShowContextMenu;
     const board = document.getElementById("board");
     board.innerHTML = "";
     this.storageManager.items.forEach(it => {
-      board.appendChild(this.makeTile(it, onShowContextMenu));
+      board.appendChild(this.makeTile(it, this.onShowContextMenu));
     });
     if (this.storageManager.autoAlign) this.autoAlignTiles();
   }
@@ -302,6 +308,44 @@ export class TileManager {
         console.debug("favicon load failed for", it.url, e);
       }
     });
+  }
+
+  async applyIconChange(itemId, iconType) {
+    const it = this.storageManager.items.find(it => it.id === itemId);
+    if (!it) return false;
+
+    let newIcon = "";
+
+    if (iconType === "default") {
+      newIcon = "";
+    } else if (iconType === "website") {
+      const favicon = await this.iconManager.fetchFavicon(it.url);
+      if (!favicon) return false;
+      newIcon = favicon;
+    } else if (iconType === "local") {
+      const fileInput = document.getElementById("editLocalIcon");
+      const file = fileInput && fileInput.files ? fileInput.files[0] : null;
+      if (file) {
+        try {
+          newIcon = await this.iconManager.readFileAsDataURL(file);
+        } catch (e) {
+          return false;
+        }
+      } else {
+        return false;
+      }
+    } else if (typeof iconType === 'string' && iconType.startsWith('extension:')) {
+      const filename = iconType.split(':')[1];
+      if (!filename) return false;
+      newIcon = chrome.runtime.getURL(`icons/${filename}`);
+    } else {
+      return false;
+    }
+
+    it.icon = newIcon;
+    this.storageManager.save();
+    this.renderAll();
+    return true;
   }
 
   escapeHtml(s) { 

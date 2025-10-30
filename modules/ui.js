@@ -58,6 +58,11 @@ export class UIManager {
         const localIconFile = favLocalIconInput.files[0];
         
         if (!/^https?:\/\//.test(url)) url = "https://" + url;
+
+        if (this.managers.storage.items.some(it => it.url === url)) {
+          alert(this.managers.i18n.getMessage("quickLinkDuplicate") || "This link already exists!");
+          return;
+        }
         
         let finalIcon = "";
         if (localIconFile) {
@@ -195,7 +200,13 @@ export class UIManager {
             suggestionsBox.style.display = "none";
             suggestionsBox.setAttribute("aria-hidden", "true");
           }
-        }, 150);
+        }, 200);
+      });
+    }
+
+    if (suggestionsBox) {
+      suggestionsBox.addEventListener("mousedown", (e) => {
+        e.preventDefault(); // Prevent losing focus on input
       });
     }
 

@@ -5,6 +5,17 @@ export class BookmarkManager {
     this.storageManager = storageManager;
     this.layoutManager = layoutManager;
     this.callbacks = callbacks;
+    this.deletedBookmarkUrls = new Set(JSON.parse(localStorage.getItem('deletedBookmarkUrls') || '[]'));
+  }
+
+  markBookmarkUrlDeleted(url) {
+    this.deletedBookmarkUrls.add(url);
+    localStorage.setItem('deletedBookmarkUrls', JSON.stringify([...this.deletedBookmarkUrls]));
+  }
+
+  clearDeletedBookmarkUrls() {
+    this.deletedBookmarkUrls.clear();
+    localStorage.setItem('deletedBookmarkUrls', JSON.stringify([]));
   }
 
   async loadBookmarks(limit) {
@@ -19,7 +30,9 @@ export class BookmarkManager {
       
       if (bookmarksBar && bookmarksBar.children) {
         const bookmarks = bookmarksBar.children.filter(child => child.url);
-        const toConsider = (limit > 0) ? bookmarks.slice(0, limit) : [];
+        // Skip deleted bookmarks
+        const filtered = bookmarks.filter(b => !this.deletedBookmarkUrls.has(b.url));
+        const toConsider = (limit > 0) ? filtered.slice(0, limit) : [];
 
         const allowedIds = new Set(toConsider.map(b => b.id));
         let removed = false;

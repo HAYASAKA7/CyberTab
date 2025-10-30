@@ -164,12 +164,18 @@ export class SuggestionManager {
       div.setAttribute("role", "option");
       div.dataset.index = idx;
       div.innerHTML = `<span class="suggest-text">${this.escapeHtml(s)}</span>`;
-      div.addEventListener("click", () => {
+      div.addEventListener("click", (e) => {
+        e.stopPropagation();
         const input = document.getElementById("searchInput");
-        if (input) input.value = s;
+        if (input) {
+          input.value = s;
+        }
         box.style.display = "none";
         box.setAttribute("aria-hidden", "true");
-        if (onPerformSearch) onPerformSearch(s);
+        //if (onPerformSearch) onPerformSearch(s);
+        if (onPerformSearch && typeof onPerformSearch === 'function') {
+          setTimeout(() => onPerformSearch(s), 0);
+        }
       });
       box.appendChild(div);
     });

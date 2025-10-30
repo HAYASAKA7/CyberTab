@@ -211,5 +211,8 @@
   },
   "homeButtonUpdateTitle": {
     "message": "New version available!"
+  },
+  "resyncBookmarksMenuItem": { 
+    "message": "ReSync Bookmarks"
   }
 }

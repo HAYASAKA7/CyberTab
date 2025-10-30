@@ -47,5 +47,10 @@ export class SearchManager {
     }
     
     window.open(searchUrl, "_blank");
+    const searchInput = document.getElementById("searchInput");
+    if (searchInput) {
+      searchInput.value = "";
+      searchInput.blur();
+    }
   }
 }

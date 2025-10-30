@@ -73,6 +73,7 @@ export class ContextMenuManager {
                      (autoAlign ? "Disable Auto Align" : "Enable Auto Align");
     const alignIcon = autoAlign ? '🔒' : '🔓';
     const addText = this.i18nManager.getMessage("addButton") || "Add";
+    const resyncText = this.i18nManager.getMessage("resyncBookmarksMenuItem") || "ReSync Bookmarks";
     
     const menu = document.createElement("div");
     menu.className = "context-menu";
@@ -85,12 +86,18 @@ export class ContextMenuManager {
         <span class="context-icon">${alignIcon}</span>
         <span></span>
       </div>
+      <div class="context-item" data-action="resync-bookmarks" data-i18n="resyncBookmarksMenuItem">
+        <span class="context-icon">🔄</span>
+        <span></span>
+      </div>
     `;
     
     const addSpan = menu.querySelector('[data-action="add-favorite"] span:last-child');
     const textSpan = menu.querySelector('[data-action="toggle-auto-align"] span:last-child');
+    const resyncSpan = menu.querySelector('[data-i18n="resyncBookmarksMenuItem"] span:last-child');
     if (addSpan) addSpan.textContent = addText;
     if (textSpan) textSpan.textContent = alignText;
+    if (resyncSpan) resyncSpan.textContent = resyncText;
     
     document.body.appendChild(menu);
     this.contextMenu = menu;
@@ -117,6 +124,13 @@ export class ContextMenuManager {
     menu.querySelector('[data-action="toggle-auto-align"]').addEventListener("click", () => {
       if (this.callbacks.onToggleAutoAlign) {
         this.callbacks.onToggleAutoAlign();
+      }
+      this.hideContextMenu();
+    });
+
+    menu.querySelector('[data-action="resync-bookmarks"]').addEventListener("click", () => {
+      if (this.callbacks.onResyncBookmarks) {
+        this.callbacks.onResyncBookmarks();
       }
       this.hideContextMenu();
     });

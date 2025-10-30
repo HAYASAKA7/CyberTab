@@ -211,5 +211,8 @@
   },
   "homeButtonUpdateTitle": {
     "message": "新しいバージョンがあります！"
+  },
+  "resyncBookmarksMenuItem": { 
+    "message": "ブックマークを再同期"
   }
 }

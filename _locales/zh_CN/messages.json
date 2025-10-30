@@ -211,5 +211,8 @@
   },
   "homeButtonUpdateTitle": {
     "message": "有新版本可用！"
+  },
+  "resyncBookmarksMenuItem": { 
+    "message": "重新同步收藏夹"
   }
 }
