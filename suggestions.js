@@ -169,7 +169,6 @@ export class SuggestionManager {
         const input = document.getElementById("searchInput");
         if (input) {
           input.value = s;
-          input.value = "";
         }
         box.style.display = "none";
         box.setAttribute("aria-hidden", "true");
