@@ -200,7 +200,13 @@ export class UIManager {
             suggestionsBox.style.display = "none";
             suggestionsBox.setAttribute("aria-hidden", "true");
           }
-        }, 150);
+        }, 200);
+      });
+    }
+
+    if (suggestionsBox) {
+      suggestionsBox.addEventListener("mousedown", (e) => {
+        e.preventDefault(); // Prevent losing focus on input
       });
     }
 
