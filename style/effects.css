@@ -128,3 +128,21 @@
   will-change: transform, opacity;
   mix-blend-mode: screen;
 }
+
+/* Dynamic cursor */
+*,
+*:before,
+*:after,
+html,
+body {
+  cursor: none !important;
+}
+
+.cyber-cursor-anim {
+  position: fixed;
+  left: 0; top: 0;
+  width: 32px; height: 32px;
+  pointer-events: none;
+  z-index: 100000;
+  transition: filter 0.2s;
+}

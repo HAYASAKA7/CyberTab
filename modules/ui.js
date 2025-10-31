@@ -129,71 +129,52 @@ export class UIManager {
     if (searchInput && clearBtn) {
       const searchFormEl = searchForm || document.querySelector(".search-box");
       
-      const showClear = () => {
-        if (searchInput && String(searchInput.value || "").trim().length > 0) {
-          clearBtn.classList.add("visible");
+      // Neon mouse trail
+      let lastX = 0, lastY = 0;
+      (function neonMouseTrail() {
+        const colors = ['#ff2d95', '#ff2d95'];
+        const trailLength = 32;
+        const trail = [];
+
+        function createDot(x, y, i) {
+          const dot = document.createElement('div');
+          dot.className = 'neon-mouse-dot';
+          dot.style.left = x + 'px';
+          dot.style.top = y + 'px';
+          dot.style.background = `linear-gradient(135deg, ${colors[i%2]}, ${colors[(i+1)%2]})`;
+          dot.style.opacity = i === 0 ? '0' : ((1 - i / trailLength) * 0.35);
+          document.body.appendChild(dot);
+          return dot;
         }
-      };
-      
-      const hideClearIfEmpty = () => {
-        if (!searchInput.value && document.activeElement !== searchInput) {
-          clearBtn.classList.remove("visible");
-        }
-      };
 
-      if (searchFormEl) {
-        searchFormEl.addEventListener("pointerenter", showClear);
-        searchFormEl.addEventListener("pointerleave", () => setTimeout(hideClearIfEmpty, 120));
-      }
-
-      clearBtn.addEventListener("pointerenter", showClear);
-      clearBtn.addEventListener("pointerleave", () => setTimeout(hideClearIfEmpty, 120));
-
-      searchInput.addEventListener("focus", showClear);
-      searchInput.addEventListener("blur", () => setTimeout(hideClearIfEmpty, 120));
-      searchInput.addEventListener("input", () => {
-        if (searchInput.value) showClear();
-        else if (document.activeElement !== searchInput) clearBtn.classList.remove("visible");
-      });
-
-      clearBtn.addEventListener("click", (e) => {
-        e.preventDefault();
-        searchInput.value = "";
-        if (suggestionsBox) {
-          suggestionsBox.style.display = "none";
-          suggestionsBox.setAttribute("aria-hidden", "true");
-        }
-        clearBtn.classList.remove("visible");
-        searchInput.focus();
-        const ev = new Event('input', { bubbles: true });
-        searchInput.dispatchEvent(ev);
-      });
-    }
-
-    if (searchInput) {
-      searchInput.addEventListener("input", (e) => {
-        const v = e.target.value || "";
-        this.managers.suggestion.debouncedRemoteSuggestions(v);
-      });
-      
-      searchInput.addEventListener("keydown", (e) => {
-        if (e.key === "ArrowDown") {
-          e.preventDefault();
-          this.managers.suggestion.moveSuggestion(1);
-        } else if (e.key === "ArrowUp") {
-          e.preventDefault();
-          this.managers.suggestion.moveSuggestion(-1);
-        } else if (e.key === "Enter" && suggestionsBox && 
-                   suggestionsBox.style.display !== "none") {
-          if (this.managers.suggestion.acceptActiveSuggestion()) {
-            e.preventDefault();
+        function updateCursorPos(e) {
+          lastX = e.clientX;
+          lastY = e.clientY;
+          const cursor = document.querySelector('.cyber-cursor-anim');
+          if (cursor) {
+            cursor.style.left = (e.clientX - 16) + 'px';
+            cursor.style.top = (e.clientY - 16) + 'px';
           }
-        } else if (e.key === "Tab") {
-          e.preventDefault();
-          this.managers.search.toggleEngine();
         }
-      });
+        document.addEventListener('mousemove', updateCursorPos);
+        document.addEventListener('pointermove', updateCursorPos);
 
+        function animate() {
+          trail.unshift({ x: lastX, y: lastY });
+          if (trail.length > trailLength) {
+            const old = trail.pop();
+            if (old.el) old.el.remove();
+          }
+          trail.forEach((p, i) => {
+            if (!p.el) p.el = createDot(p.x, p.y, i);
+            p.el.style.left = p.x + 'px';
+            p.el.style.top = p.y + 'px';
+            p.el.style.opacity = (1 - i / trailLength) * 0.35;
+          });
+          requestAnimationFrame(animate);
+        }
+        animate();
+      })();
       searchInput.addEventListener("blur", () => {
         setTimeout(() => {
           if (suggestionsBox) {
@@ -412,41 +393,190 @@ export class UIManager {
 }
 
 // Neon mouse trail
+let lastX = 0, lastY = 0;
 (function neonMouseTrail() {
   const colors = ['#ff2d95', '#ff2d95'];
   const trailLength = 32;
   const trail = [];
-  let lastX = 0, lastY = 0;
-
+  let trailActive = false;
   function createDot(x, y, i) {
     const dot = document.createElement('div');
     dot.className = 'neon-mouse-dot';
     dot.style.left = x + 'px';
     dot.style.top = y + 'px';
     dot.style.background = `linear-gradient(135deg, ${colors[i%2]}, ${colors[(i+1)%2]})`;
-    dot.style.opacity = (1 - i / trailLength) * 0.35;
+    dot.style.opacity = i === 0 ? '0' : ((1 - i / trailLength) * 0.35);
+    dot.style.display = trailActive ? '' : 'none';
     document.body.appendChild(dot);
     return dot;
   }
 
-  document.addEventListener('mousemove', e => {
-    lastX = e.clientX;
-    lastY = e.clientY;
-  });
+  function setTrailVisible(visible) {
+    trailActive = visible;
+    trail.forEach((p, i) => {
+      if (p.el) p.el.style.display = visible ? '' : 'none';
+    });
+  }
+
+  function resetTrail() {
+    while (trail.length) {
+      const p = trail.pop();
+      if (p.el) p.el.remove();
+    }
+  }
 
   function animate() {
-    trail.unshift({ x: lastX, y: lastY });
-    if (trail.length > trailLength) {
-      const old = trail.pop();
-      if (old.el) old.el.remove();
+    if (trailActive) {
+      trail.unshift({ x: lastX, y: lastY });
+      if (trail.length > trailLength) {
+        const old = trail.pop();
+        if (old.el) old.el.remove();
+      }
+      trail.forEach((p, i) => {
+        if (!p.el) p.el = createDot(p.x, p.y, i);
+        p.el.style.left = p.x + 'px';
+        p.el.style.top = p.y + 'px';
+        p.el.style.opacity = i === 0 ? '0' : ((1 - i / trailLength) * 0.35);
+        p.el.style.display = '';
+      });
+    } else {
+      trail.forEach((p) => { if (p.el) p.el.style.display = 'none'; });
     }
-    trail.forEach((p, i) => {
-      if (!p.el) p.el = createDot(p.x, p.y, i);
-      p.el.style.left = p.x + 'px';
-      p.el.style.top = p.y + 'px';
-      p.el.style.opacity = (1 - i / trailLength) * 0.35;
-    });
     requestAnimationFrame(animate);
   }
   animate();
+
+  window.addEventListener('mouseenter', () => {
+    setTrailVisible(true);
+  });
+  window.addEventListener('mouseleave', () => {
+    setTrailVisible(false);
+    resetTrail();
+  });
+})();
+
+(function enableCursorFollowDuringTileDrag() {
+  let dragging = false;
+
+  document.addEventListener('pointerdown', e => {
+    const tile = e.target.closest('.tile');
+    if (tile && e.button === 0) {
+      dragging = true;
+      document.addEventListener('pointermove', onPointerMove, true);
+      document.addEventListener('pointerup', onPointerUp, true);
+    }
+  });
+
+  function onPointerMove(e) {
+    lastX = e.clientX;
+    lastY = e.clientY;
+    const cursor = document.querySelector('.cyber-cursor-anim');
+    if (cursor) {
+      cursor.style.left = (e.clientX - 16) + 'px';
+      cursor.style.top = (e.clientY - 16) + 'px';
+    }
+  }
+
+  function onPointerUp() {
+    dragging = false;
+    document.removeEventListener('pointermove', onPointerMove, true);
+    document.removeEventListener('pointerup', onPointerUp, true);
+  }
+})();
+
+// Dynamic cursor
+(function dynamicAnimatedCursor() {
+  function preloadCursorFrames(frames) {
+    Object.values(frames).flat().forEach(src => {
+      const img = new window.Image();
+      img.src = src;
+    });
+  }
+
+  const cursorFrames = {
+    background: Array.from({length: 10}, (_, i) => `../cursor/Background/${String(i+3).padStart(2, '0')}.png`),
+    normal: Array.from({length: 20}, (_, i) => `../cursor/Normal/${String(i+1).padStart(2, '0')}.png`),
+    link: Array.from({length: 11}, (_, i) => `../cursor/Link/${String(i+2).padStart(2, '0')}.png`),
+    text: Array.from({length: 12}, (_, i) => `../cursor/Text/${String(i+1).padStart(2, '0')}.png`),
+    busy: Array.from({length: 6}, (_, i) => `../cursor/Busy/${String(i*2+1).padStart(2, '0')}.png`),
+    resize: Array.from({length: 20}, (_, i) => `../cursor/Resize/${String(i+1).padStart(2, '0')}.png`),
+    others: Array.from({length: 20}, (_, i) => `../cursor/Others/${String(i+1).padStart(2, '0')}.png`),
+  };
+  preloadCursorFrames(cursorFrames);
+
+  let state = 'normal';
+  let frame = 0;
+  let frameCount = cursorFrames[state].length;
+  let lastFrame = -1;
+
+  const cursor = document.createElement('div');
+  cursor.className = 'cyber-cursor-anim';
+  cursor.style.pointerEvents = 'none';
+  cursor.style.position = 'fixed';
+  cursor.style.left = '0';
+  cursor.style.top = '0';
+  cursor.style.width = '32px';
+  cursor.style.height = '32px';
+  cursor.style.zIndex = '100000';
+
+  const cursorImg = document.createElement('img');
+  cursorImg.draggable = false;
+  cursorImg.style.width = '100%';
+  cursorImg.style.height = '100%';
+  cursorImg.style.display = 'block';
+  cursorImg.style.pointerEvents = 'none';
+  cursor.appendChild(cursorImg);
+
+  document.body.appendChild(cursor);
+  cursor.style.display = 'none';
+
+  window.addEventListener('mouseenter', () => {
+    cursor.style.display = '';
+  });
+  window.addEventListener('mouseleave', () => {
+    cursor.style.display = 'none';
+  });
+
+  document.addEventListener('mousemove', e => {
+    cursor.style.left = (e.clientX - 16) + 'px';
+    cursor.style.top = (e.clientY - 16) + 'px';
+  });
+
+  setInterval(() => {
+    if (frame !== lastFrame) {
+      cursorImg.src = cursorFrames[state][frame];
+      lastFrame = frame;
+    }
+    frame = (frame + 1) % frameCount;
+  }, 60);
+
+  function setCursorState(newState) {
+    if (state !== newState && cursorFrames[newState]) {
+      state = newState;
+      frame = 0;
+      frameCount = cursorFrames[state].length;
+      lastFrame = -1; // force update
+    }
+  }
+
+  document.addEventListener('pointerover', e => {
+    if (e.target.closest('.cursor-busy, body.busy')) {
+      setCursorState('busy');
+    } else if (e.target.closest('a, button, [role="button"], .cursor-link')) {
+      setCursorState('link');
+    } else if (e.target.closest('input[type="text"], textarea, [contenteditable="true"], .cursor-text')) {
+      setCursorState('text');
+    } else if (e.target.closest('.cursor-resize, .resizable-ew, .resizable-ns, .resizable-nesw, .resizable-nwse')) {
+      setCursorState('resize');
+    } else if (e.target.closest('.cursor-others')) {
+      setCursorState('others');
+    } else {
+      setCursorState('normal');
+    }
+  });
+  document.addEventListener('pointerout', e => {
+    setCursorState('normal');
+  });
+
+  window.setCursorState = setCursorState;
 })();
