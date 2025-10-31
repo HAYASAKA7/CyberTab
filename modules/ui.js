@@ -528,14 +528,6 @@ let lastX = 0, lastY = 0;
   cursor.appendChild(cursorImg);
 
   document.body.appendChild(cursor);
-  cursor.style.display = 'none';
-
-  window.addEventListener('mouseenter', () => {
-    cursor.style.display = '';
-  });
-  window.addEventListener('mouseleave', () => {
-    cursor.style.display = 'none';
-  });
 
   document.addEventListener('mousemove', e => {
     cursor.style.left = (e.clientX - 16) + 'px';
