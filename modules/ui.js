@@ -410,3 +410,43 @@ export class UIManager {
     modal.setAttribute("aria-hidden", "true");
   }
 }
+
+// Neon mouse trail
+(function neonMouseTrail() {
+  const colors = ['#ff2d95', '#ff2d95'];
+  const trailLength = 32;
+  const trail = [];
+  let lastX = 0, lastY = 0;
+
+  function createDot(x, y, i) {
+    const dot = document.createElement('div');
+    dot.className = 'neon-mouse-dot';
+    dot.style.left = x + 'px';
+    dot.style.top = y + 'px';
+    dot.style.background = `linear-gradient(135deg, ${colors[i%2]}, ${colors[(i+1)%2]})`;
+    dot.style.opacity = (1 - i / trailLength) * 0.35;
+    document.body.appendChild(dot);
+    return dot;
+  }
+
+  document.addEventListener('mousemove', e => {
+    lastX = e.clientX;
+    lastY = e.clientY;
+  });
+
+  function animate() {
+    trail.unshift({ x: lastX, y: lastY });
+    if (trail.length > trailLength) {
+      const old = trail.pop();
+      if (old.el) old.el.remove();
+    }
+    trail.forEach((p, i) => {
+      if (!p.el) p.el = createDot(p.x, p.y, i);
+      p.el.style.left = p.x + 'px';
+      p.el.style.top = p.y + 'px';
+      p.el.style.opacity = (1 - i / trailLength) * 0.35;
+    });
+    requestAnimationFrame(animate);
+  }
+  animate();
+})();

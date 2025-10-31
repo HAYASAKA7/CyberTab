@@ -111,3 +111,20 @@
   80%  { transform: translate(calc(6vmin * var(--blob-scale)), calc(10vmin * var(--blob-scale))) rotate(42deg) scale(1.01); }
   100% { transform: translate(0vmin, 0vmin) rotate(0deg) scale(1); }
 }
+
+/* Neon mouse trail effect */
+.neon-mouse-dot {
+  position: fixed;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 99999;
+  filter: blur(0.8px) brightness(0.9) saturate(1.5);
+  box-shadow:
+    0 0 10px 2px #00f0ff88,
+    0 0 14px 6px #ff2d9588;
+  transition: opacity 0.18s linear;
+  will-change: transform, opacity;
+  mix-blend-mode: screen;
+}
