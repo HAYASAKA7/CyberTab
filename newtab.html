@@ -4,9 +4,22 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>CyberTab</title>
+  <style>
+    /* CRITICAL: Hide all native scrollbars BEFORE any other CSS loads */
+    * {
+      scrollbar-width: none !important;
+      -ms-overflow-style: none !important;
+    }
+    *::-webkit-scrollbar {
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
+    }
+  </style>
   <link rel="stylesheet" href="style/variables.css">
   <link rel="stylesheet" href="style/base.css">
   <link rel="stylesheet" href="style/effects.css">
+  <link rel="stylesheet" href="style/customScrollbar.css">
   <link rel="stylesheet" href="style/sidebar.css">
   <link rel="stylesheet" href="style/quicklinks.css">
   <link rel="stylesheet" href="style/twitter.css">

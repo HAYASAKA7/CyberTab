@@ -15,6 +15,7 @@ import { BackgroundManager } from './modules/background.js';
 import { SettingsManager } from './modules/settings.js';
 import { UIManager } from './modules/ui.js';
 import { UpdateChecker } from './modules/update.js';
+import { CustomScrollbar } from './modules/customScrollbar.js';
 
 // Initialize all managers
 const storageManager = new StorageManager();
@@ -115,6 +116,9 @@ const uiManager = new UIManager({
 
 // Main initialization
 document.addEventListener("DOMContentLoaded", async () => {
+  // Initialize custom scrollbar system first
+  const customScrollbar = new CustomScrollbar();
+
   // Load saved data
   await storageManager.load();
   

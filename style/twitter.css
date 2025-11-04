@@ -87,20 +87,24 @@
   max-height: 280px;
   overflow-y: auto;
   overflow-x: hidden;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(0,240,255,0.2) transparent;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 .twitter-tweets::-webkit-scrollbar {
-  width: 4px;
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 .twitter-tweets::-webkit-scrollbar-track {
+  display: none;
   background: transparent;
 }
 
 .twitter-tweets::-webkit-scrollbar-thumb {
-  background: rgba(0,240,255,0.2);
+  display: none;
+  background: transparent;
   border-radius: 2px;
 }
 

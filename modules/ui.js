@@ -129,6 +129,33 @@ export class UIManager {
     if (searchInput && clearBtn) {
       const searchFormEl = searchForm || document.querySelector(".search-box");
       
+      searchInput.addEventListener("input", (e) => {
+        const query = e.target.value;
+        if (this.managers.suggestion && this.managers.suggestion.debouncedRemoteSuggestions) {
+          this.managers.suggestion.debouncedRemoteSuggestions(query);
+        }
+      });
+
+      searchInput.addEventListener("keydown", (e) => {
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          if (this.managers.suggestion) {
+            this.managers.suggestion.moveSuggestion(1);
+          }
+        } else if (e.key === "ArrowUp") {
+          e.preventDefault();
+          if (this.managers.suggestion) {
+            this.managers.suggestion.moveSuggestion(-1);
+          }
+        } else if (e.key === "Enter") {
+          e.preventDefault();
+          if (this.managers.suggestion && this.managers.suggestion.acceptActiveSuggestion()) {
+          } else {
+            searchForm.dispatchEvent(new Event("submit"));
+          }
+        }
+      });
+
       // Neon mouse trail
       let lastX = 0, lastY = 0;
       (function neonMouseTrail() {
@@ -394,6 +421,8 @@ export class UIManager {
 
 // Neon mouse trail
 let lastX = 0, lastY = 0;
+let lastCursorX = window.innerWidth / 2;
+let lastCursorY = window.innerHeight / 2;
 (function neonMouseTrail() {
   const colors = ['#ff2d95', '#ff2d95'];
   const trailLength = 32;
@@ -446,6 +475,18 @@ let lastX = 0, lastY = 0;
   }
   animate();
 
+  // Track all pointer movements globally for trail
+  document.addEventListener('pointermove', (e) => {
+    lastX = e.clientX;
+    lastY = e.clientY;
+  }, true);
+  
+  // Also track pointerdown to catch scrollbar drags
+  document.addEventListener('pointerdown', (e) => {
+    lastX = e.clientX;
+    lastY = e.clientY;
+  }, true);
+
   window.addEventListener('mouseenter', () => {
     setTrailVisible(true);
   });
@@ -455,21 +496,15 @@ let lastX = 0, lastY = 0;
   });
 })();
 
-(function enableCursorFollowDuringTileDrag() {
+(function enableCursorFollowDuringDrag() {
   let dragging = false;
+  let isDraggingScrollbar = false;
 
-  document.addEventListener('pointerdown', e => {
-    const tile = e.target.closest('.tile');
-    if (tile && e.button === 0) {
-      dragging = true;
-      document.addEventListener('pointermove', onPointerMove, true);
-      document.addEventListener('pointerup', onPointerUp, true);
-    }
-  });
-
-  function onPointerMove(e) {
+  function updateCursorAndTrail(e) {
     lastX = e.clientX;
     lastY = e.clientY;
+    lastCursorX = e.clientX;
+    lastCursorY = e.clientY;
     const cursor = document.querySelector('.cyber-cursor-anim');
     if (cursor) {
       cursor.style.left = (e.clientX - 16) + 'px';
@@ -477,11 +512,42 @@ let lastX = 0, lastY = 0;
     }
   }
 
+  function onPointerMove(e) {
+    updateCursorAndTrail(e);
+  }
+
   function onPointerUp() {
     dragging = false;
+    isDraggingScrollbar = false;
     document.removeEventListener('pointermove', onPointerMove, true);
     document.removeEventListener('pointerup', onPointerUp, true);
   }
+
+  // Detect scrollbar dragging by checking if target is scrollbar-related or custom scrollbar
+  document.addEventListener('pointerdown', e => {
+    const tile = e.target.closest('.tile');
+    const target = e.target;
+    
+    // Check if clicking on custom scrollbar thumb
+    const isCustomScrollbar = target.classList?.contains('custom-scrollbar-thumb');
+    
+    // Check if clicking on native scrollbar (scrollbar has specific targets in different browsers)
+    const isNativeScrollbar = 
+      target.tagName === 'DIV' && 
+      (e.clientX > window.innerWidth - 20 || // Scrollbar thumb area
+       target.closest('.scrollbar') ||
+       target.closest('::-webkit-scrollbar') ||
+       (e.target === document.documentElement || e.target === document.body) &&
+       e.clientX > window.innerWidth - 25);
+    
+    if ((tile && e.button === 0) || isCustomScrollbar || isNativeScrollbar) {
+      dragging = true;
+      isDraggingScrollbar = isCustomScrollbar || isNativeScrollbar;
+      updateCursorAndTrail(e);
+      document.addEventListener('pointermove', onPointerMove, true);
+      document.addEventListener('pointerup', onPointerUp, true);
+    }
+  });
 })();
 
 // Dynamic cursor
@@ -508,6 +574,8 @@ let lastX = 0, lastY = 0;
   let frame = 0;
   let frameCount = cursorFrames[state].length;
   let lastFrame = -1;
+  let lastCursorX = window.innerWidth / 2;
+  let lastCursorY = window.innerHeight / 2;
 
   const cursor = document.createElement('div');
   cursor.className = 'cyber-cursor-anim';
@@ -529,10 +597,48 @@ let lastX = 0, lastY = 0;
 
   document.body.appendChild(cursor);
 
-  document.addEventListener('mousemove', e => {
+  // Track all pointer movements including scrollbar drags
+  const updateCursorPos = (e) => {
+    lastCursorX = e.clientX;
+    lastCursorY = e.clientY;
     cursor.style.left = (e.clientX - 16) + 'px';
     cursor.style.top = (e.clientY - 16) + 'px';
-  });
+  };
+
+  // Use capture phase to intercept all events before they bubble
+  document.addEventListener('mousemove', updateCursorPos, true);
+  document.addEventListener('pointermove', updateCursorPos, true);
+  document.addEventListener('pointerdown', updateCursorPos, true);
+  
+  // Fallback for mousedown in case pointermove doesn't fire during scrollbar drag
+  document.addEventListener('mousedown', updateCursorPos, true);
+  
+  document.addEventListener('touchmove', (e) => {
+    if (e.touches.length > 0) {
+      updateCursorPos(e.touches[0]);
+    }
+  }, true);
+  
+  document.addEventListener('touchstart', (e) => {
+    if (e.touches.length > 0) {
+      updateCursorPos(e.touches[0]);
+    }
+  }, true);
+
+  // Sync cursor position during scroll or any resize
+  window.addEventListener('scroll', () => {
+    cursor.style.left = (lastCursorX - 16) + 'px';
+    cursor.style.top = (lastCursorY - 16) + 'px';
+  }, true);
+  
+  // Use requestAnimationFrame for smooth tracking even during system events
+  let rafId;
+  const trackCursorWithRAF = () => {
+    cursor.style.left = (lastCursorX - 16) + 'px';
+    cursor.style.top = (lastCursorY - 16) + 'px';
+    rafId = requestAnimationFrame(trackCursorWithRAF);
+  };
+  trackCursorWithRAF();
 
   setInterval(() => {
     if (frame !== lastFrame) {
@@ -566,6 +672,7 @@ let lastX = 0, lastY = 0;
       setCursorState('normal');
     }
   });
+  
   document.addEventListener('pointerout', e => {
     setCursorState('normal');
   });

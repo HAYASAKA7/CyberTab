@@ -131,10 +131,22 @@
 
 /* Dynamic cursor */
 *,
-*:before,
-*:after,
+*::before,
+*::after,
 html,
-body {
+body,
+div,
+span,
+a,
+button,
+input,
+textarea,
+select {
+  cursor: none !important;
+}
+
+/* Override any inline cursor styles */
+*[style*="cursor"] {
   cursor: none !important;
 }
 

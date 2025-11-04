@@ -1,8 +1,7 @@
 /* Cyberpunk custom scrollbar behavior
-   - Default: hidden (to keep UI clean)
-   - :hover on container => full-width neon scrollbar
-   - .scrolling on container (set by JS during wheel) => compact visible thumb
-   - Works for WebKit (Chromium) and Firefox
+   - Scrollbars are handled by JavaScript (customScrollbar.js)
+   - Native scrollbars are completely hidden
+   - Custom neon scrollbars appear on hover with custom cursor
 */
 
 /* Apply to main scrollable regions */
@@ -18,13 +17,13 @@
   will-change: scroll;
 }
 
-/* --- Default: hidden scrollbar --- */
+/* --- CRITICAL: Hide ALL native scrollbars --- */
 /* Firefox */
 #board,
 #modal .card,
 #settingsModal .card,
 #editIconModal .card {
-  scrollbar-width: none; /* hide in firefox by default */
+  scrollbar-width: none;
   -ms-overflow-style: none;
 }
 
@@ -33,68 +32,49 @@
 #modal .card::-webkit-scrollbar,
 #settingsModal .card::-webkit-scrollbar,
 #editIconModal .card::-webkit-scrollbar {
-  width: 0;
-  height: 0;
-  transition: width .18s ease, height .18s ease;
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
-/* Ensure default scrollbars are fully hidden when not active.
-   Target same regions as custom styles and also the suggestions box.
-   This prevents the native black/white scrollbar from showing. */
-#board,
-#modal .card,
-#settingsModal .card,
-#editIconModal .card,
+#board::-webkit-scrollbar-track,
+#modal .card::-webkit-scrollbar-track,
+#settingsModal .card::-webkit-scrollbar-track,
+#editIconModal .card::-webkit-scrollbar-track {
+  display: none !important;
+  background: transparent !important;
+}
+
+#board::-webkit-scrollbar-thumb,
+#modal .card::-webkit-scrollbar-thumb,
+#settingsModal .card::-webkit-scrollbar-thumb,
+#editIconModal .card::-webkit-scrollbar-thumb {
+  display: none !important;
+  background: transparent !important;
+}
+
+#board::-webkit-scrollbar-corner,
+#modal .card::-webkit-scrollbar-corner,
+#settingsModal .card::-webkit-scrollbar-corner,
+#editIconModal .card::-webkit-scrollbar-corner {
+  display: none !important;
+  background: transparent !important;
+}
+
+/* Same for suggestions */
 .suggestions {
-  /* Default: hide for Firefox */
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
 
-/* WebKit: hide by default (force) */
-#board::-webkit-scrollbar,
-#modal .card::-webkit-scrollbar,
-#settingsModal .card::-webkit-scrollbar,
-#editIconModal .card::-webkit-scrollbar,
 .suggestions::-webkit-scrollbar {
+  display: none !important;
   width: 0 !important;
   height: 0 !important;
 }
 
-/* When NOT hovered and NOT in 'scrolling' mode keep everything transparent/no-thumb.
-   Use :not(:hover):not(.scrolling) to avoid interfering with :hover/.scrolling rules. */
-#board:not(:hover):not(.scrolling),
-#modal .card:not(:hover):not(.scrolling),
-#settingsModal .card:not(:hover):not(.scrolling),
-#editIconModal .card:not(:hover):not(.scrolling),
-.suggestions:not(:hover):not(.scrolling) {
-  scrollbar-width: none;
-}
-
-/* WebKit fallback: explicitly make thumb/track transparent when hidden */
-#board:not(:hover):not(.scrolling)::-webkit-scrollbar,
-#modal .card:not(:hover):not(.scrolling)::-webkit-scrollbar,
-#settingsModal .card:not(:hover):not(.scrolling)::-webkit-scrollbar,
-#editIconModal .card:not(:hover):not(.scrolling)::-webkit-scrollbar,
-.suggestions:not(:hover):not(.scrolling)::-webkit-scrollbar {
-  width: 0 !important;
-  height: 0 !important;
-}
-
-#board:not(:hover):not(.scrolling)::-webkit-scrollbar-thumb,
-#modal .card:not(:hover):not(.scrolling)::-webkit-scrollbar-thumb,
-#settingsModal .card:not(:hover):not(.scrolling)::-webkit-scrollbar-thumb,
-#editIconModal .card:not(:hover):not(.scrolling)::-webkit-scrollbar-thumb,
-.suggestions:not(:hover):not(.scrolling)::-webkit-scrollbar-thumb {
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-}
-
-/* Also ensure the corner area is transparent when hidden */
-#board:not(:hover):not(.scrolling)::-webkit-scrollbar-corner,
-#modal .card:not(:hover):not(.scrolling)::-webkit-scrollbar-corner,
-.settings-card:not(:hover):not(.scrolling)::-webkit-scrollbar-corner,
-.suggestions:not(:hover):not(.scrolling)::-webkit-scrollbar-corner {
-  background: transparent !important;
+.suggestions::-webkit-scrollbar-track,
+.suggestions::-webkit-scrollbar-thumb,
+.suggestions::-webkit-scrollbar-corner {
+  display: none !important;
 }

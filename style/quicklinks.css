@@ -23,26 +23,30 @@
   border:1px solid rgba(0,240,255,0.12);
   border-radius:12px;
   background:rgba(0,0,0,0.2);
-  scrollbar-width:thin;
-  scrollbar-color:rgba(0,240,255,0.2) transparent;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 .quick-links-list::-webkit-scrollbar{
-  width:6px;
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 .quick-links-list::-webkit-scrollbar-track{
-  background:transparent;
+  display: none;
+  background: transparent;
 }
 
 .quick-links-list::-webkit-scrollbar-thumb{
-  background:rgba(0,240,255,0.2);
-  border-radius:3px;
-  transition:background .2s ease;
+  display: none;
+  background: transparent;
+  border-radius: 3px;
+  transition: background .2s ease;
 }
 
 .quick-links-list::-webkit-scrollbar-thumb:hover{
-  background:rgba(0,240,255,0.35);
+  background: transparent;
 }
 
 /* NEW: Quick link item */

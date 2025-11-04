@@ -1,0 +1,179 @@
+/**
+ * Custom Scrollbar Styles
+ * Hide native scrollbars and style custom scrollbars
+ * This uses an aggressive approach to ensure NO native scrollbars appear
+ */
+
+/* ========== GLOBAL SCROLLBAR HIDE (ALL ELEMENTS) ========== */
+/* Apply to every possible element that might have a scrollbar */
+*,
+*::before,
+*::after,
+html,
+body,
+html body,
+div,
+section,
+article,
+main,
+aside,
+header,
+footer,
+nav {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+  /* Hide webkit scrollbars completely */
+}
+
+/* Webkit - Hide all scrollbars via pseudo-elements */
+::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
+::-webkit-scrollbar-track {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
+::-webkit-scrollbar-thumb {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
+::-webkit-scrollbar-corner {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
+::-webkit-resizer {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
+/* ========== SPECIFIC ELEMENTS ========== */
+html,
+body {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+  overflow: auto !important;
+}
+
+#board,
+#modal .card,
+#settingsModal .card,
+#editIconModal .card,
+.suggestions {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+  overflow: scroll !important; /* Force scrollbar to exist but hidden */
+}
+
+/* ========== WEBKIT SPECIFIC FOR ALL CONTAINERS ========== */
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+#board::-webkit-scrollbar,
+#modal .card::-webkit-scrollbar,
+#settingsModal .card::-webkit-scrollbar,
+#editIconModal .card::-webkit-scrollbar,
+.suggestions::-webkit-scrollbar,
+.custom-scrollbar-container::-webkit-scrollbar {
+  display: none !important;
+  width: 0px !important;
+  height: 0px !important;
+  background: none !important;
+  visibility: hidden !important;
+}
+
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track,
+#board::-webkit-scrollbar-track,
+#modal .card::-webkit-scrollbar-track,
+#settingsModal .card::-webkit-scrollbar-track,
+#editIconModal .card::-webkit-scrollbar-track,
+.suggestions::-webkit-scrollbar-track,
+.custom-scrollbar-container::-webkit-scrollbar-track {
+  display: none !important;
+  width: 0px !important;
+  height: 0px !important;
+  background: none !important;
+}
+
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb,
+#board::-webkit-scrollbar-thumb,
+#modal .card::-webkit-scrollbar-thumb,
+#settingsModal .card::-webkit-scrollbar-thumb,
+#editIconModal .card::-webkit-scrollbar-thumb,
+.suggestions::-webkit-scrollbar-thumb,
+.custom-scrollbar-container::-webkit-scrollbar-thumb {
+  display: none !important;
+  width: 0px !important;
+  height: 0px !important;
+  background: none !important;
+  visibility: hidden !important;
+}
+
+html::-webkit-scrollbar-corner,
+body::-webkit-scrollbar-corner,
+#board::-webkit-scrollbar-corner,
+#modal .card::-webkit-scrollbar-corner,
+#settingsModal .card::-webkit-scrollbar-corner,
+#editIconModal .card::-webkit-scrollbar-corner,
+.suggestions::-webkit-scrollbar-corner,
+.custom-scrollbar-container::-webkit-scrollbar-corner {
+  display: none !important;
+  width: 0px !important;
+  height: 0px !important;
+  background: transparent !important;
+  visibility: hidden !important;
+}
+
+/* Hide custom scrollbar styling */
+.custom-scrollbar-container {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.custom-scrollbar-track {
+  background: transparent !important;
+}
+
+.custom-scrollbar-thumb {
+  cursor: none !important;
+}
+
+.custom-scrollbar-container::-webkit-scrollbar-corner {
+  display: none !important;
+  background: transparent !important;
+}
+
+/* Custom scrollbar styling */
+.custom-scrollbar-track {
+  background: transparent !important;
+}
+
+.custom-scrollbar-thumb {
+  cursor: none !important;
+  /* Override any default styling */
+}
+
+.custom-scrollbar-thumb:hover {
+  cursor: none !important;
+  box-shadow: 0 0 15px rgba(0, 240, 255, 0.8), 0 0 20px rgba(255, 45, 149, 0.4) !important;
+}
+
+.custom-scrollbar-thumb:active {
+  cursor: none !important;
+  box-shadow: 0 0 20px rgba(0, 240, 255, 1), 0 0 25px rgba(255, 45, 149, 0.6) !important;
+}

@@ -90,27 +90,29 @@
   display:flex;
   flex-direction:column;
   gap:16px;
-  /* Custom scrollbar */
-  scrollbar-width:thin;
-  scrollbar-color:rgba(0,240,255,0.2) transparent;
+  /* Scrollbars hidden by customScrollbar.js */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 .right-sidebar-cards::-webkit-scrollbar{
-  width:6px;
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 .right-sidebar-cards::-webkit-scrollbar-track{
-  background:transparent;
+  display: none;
+  background: transparent;
 }
 
 .right-sidebar-cards::-webkit-scrollbar-thumb{
-  background:rgba(0,240,255,0.2);
-  border-radius:3px;
-  transition:background .2s ease;
+  display: none;
+  background: transparent;
 }
 
 .right-sidebar-cards::-webkit-scrollbar-thumb:hover{
-  background:rgba(0,240,255,0.35);
+  background: transparent;
 }
 
 /* Individual card */
