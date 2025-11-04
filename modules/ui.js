@@ -24,25 +24,23 @@ export class UIManager {
     const favLocalIconInput = document.getElementById("favLocalIcon");
     const favLocalIconName = document.getElementById("favLocalIconName");
 
-    if (favLocalIconBtn && favLocalIconInput) {
-      favLocalIconBtn.addEventListener("click", () => favLocalIconInput.click());
-      favLocalIconInput.addEventListener("change", (e) => {
-        const f = e.target.files[0];
-        favLocalIconName.textContent = f ? f.name : "";
-      });
-    }
-
     if (addBtn) {
       addBtn.addEventListener("click", () => {
+        if (!modal) {
+          console.warn("modal element not found");
+          return;
+        }
         modal.classList.remove("hidden");
         modal.setAttribute("aria-hidden", "false");
-        document.getElementById("favName").focus();
+        const nameInput = document.getElementById("favName");
+        if (nameInput) nameInput.focus();
         this.managers.sidebar.closeLeftSidebar();
       });
     }
 
     if (cancelBtn) {
       cancelBtn.addEventListener("click", () => {
+        if (!modal) return;
         modal.classList.add("hidden");
         modal.setAttribute("aria-hidden", "true");
         favForm.reset();

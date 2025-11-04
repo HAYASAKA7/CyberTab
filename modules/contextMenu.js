@@ -68,22 +68,21 @@ export class ContextMenuManager {
   showBoardContextMenu(x, y, autoAlign) {
     this.hideContextMenu();
     
-    const key = autoAlign ? "disableAutoAlign" : "enableAutoAlign";
-    const alignText = this.i18nManager.getMessage(key) || 
-                     (autoAlign ? "Disable Auto Align" : "Enable Auto Align");
-    const alignIcon = autoAlign ? '🔒' : '🔓';
-    const addText = this.i18nManager.getMessage("addButton") || "Add";
-    const resyncText = this.i18nManager.getMessage("resyncBookmarksMenuItem") || "ReSync Bookmarks";
-    
     const menu = document.createElement("div");
     menu.className = "context-menu";
+    const addText = this.i18nManager.getMessage("addButton") || "Add";
+    const alignText = autoAlign 
+      ? (this.i18nManager.getMessage("disableAutoAlign") || "Disable Auto Align")
+      : (this.i18nManager.getMessage("enableAutoAlign") || "Enable Auto Align");
+    const resyncText = this.i18nManager.getMessage("resyncBookmarksMenuItem") || "ReSync Bookmarks";
+    
     menu.innerHTML = `
-      <div class="context-item" data-action="add-favorite">
-        <span class="context-icon">＋</span>
+      <div class="context-item" data-action="add-favorite" data-i18n="addButton">
+        <span class="context-icon">➕</span>
         <span></span>
       </div>
-      <div class="context-item" data-action="toggle-auto-align">
-        <span class="context-icon">${alignIcon}</span>
+      <div class="context-item" data-action="toggle-auto-align" data-i18n="${autoAlign ? 'disableAutoAlign' : 'enableAutoAlign'}">
+        <span class="context-icon">${autoAlign ? '📌' : '🔓'}</span>
         <span></span>
       </div>
       <div class="context-item" data-action="resync-bookmarks" data-i18n="resyncBookmarksMenuItem">
@@ -94,7 +93,7 @@ export class ContextMenuManager {
     
     const addSpan = menu.querySelector('[data-action="add-favorite"] span:last-child');
     const textSpan = menu.querySelector('[data-action="toggle-auto-align"] span:last-child');
-    const resyncSpan = menu.querySelector('[data-i18n="resyncBookmarksMenuItem"] span:last-child');
+    const resyncSpan = menu.querySelector('[data-action="resync-bookmarks"] span:last-child');
     if (addSpan) addSpan.textContent = addText;
     if (textSpan) textSpan.textContent = alignText;
     if (resyncSpan) resyncSpan.textContent = resyncText;
@@ -110,40 +109,40 @@ export class ContextMenuManager {
     menu.style.left = Math.min(x, maxX) + "px";
     menu.style.top = Math.min(y, maxY) + "px";
     
-    // Show with animation
     setTimeout(() => menu.classList.add("show"), 10);
     
-    // Handle actions
-    menu.querySelector('[data-action="add-favorite"]').addEventListener("click", () => {
-      if (this.callbacks.onShowAddModal) {
-        this.callbacks.onShowAddModal();
-      }
-      this.hideContextMenu();
-    });
-    
-    menu.querySelector('[data-action="toggle-auto-align"]').addEventListener("click", () => {
-      if (this.callbacks.onToggleAutoAlign) {
-        this.callbacks.onToggleAutoAlign();
-      }
-      this.hideContextMenu();
-    });
-
-    menu.querySelector('[data-action="resync-bookmarks"]').addEventListener("click", () => {
-      if (this.callbacks.onResyncBookmarks) {
-        this.callbacks.onResyncBookmarks();
-      }
-      this.hideContextMenu();
-    });
-    
-    // Close on click outside
-    setTimeout(() => {
-      const closeHandler = (e) => {
-        if (!menu.contains(e.target)) {
-          this.hideContextMenu();
+    // Handle add favorite
+    const addFavBtn = menu.querySelector('[data-action="add-favorite"]');
+    if (addFavBtn) {
+      addFavBtn.addEventListener("click", () => {
+        if (this.callbacks.onShowAddModal) {
+          this.callbacks.onShowAddModal();
         }
-      };
-      document.addEventListener("click", closeHandler, { once: true });
-    }, 10);
+        this.hideContextMenu();
+      });
+    }
+    
+    // Handle toggle auto align
+    const toggleBtn = menu.querySelector('[data-action="toggle-auto-align"]');
+    if (toggleBtn) {
+      toggleBtn.addEventListener("click", () => {
+        if (this.callbacks.onToggleAutoAlign) {
+          this.callbacks.onToggleAutoAlign();
+        }
+        this.hideContextMenu();
+      });
+    }
+    
+    // Handle resync
+    const resyncBtn = menu.querySelector('[data-action="resync-bookmarks"]');
+    if (resyncBtn) {
+      resyncBtn.addEventListener("click", () => {
+        if (this.callbacks.onResyncBookmarks) {
+          this.callbacks.onResyncBookmarks();
+        }
+        this.hideContextMenu();
+      });
+    }
   }
 
   hideContextMenu() {

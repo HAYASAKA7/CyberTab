@@ -61,11 +61,6 @@ export class CustomScrollbar {
       overflow: scroll !important;
     `;
 
-    // Also apply to parent for safety
-    if (container.parentElement) {
-      container.parentElement.style.position = 'relative';
-    }
-
     // Add class for CSS targeting
     container.classList.add('custom-scrollbar-container');
 
@@ -122,14 +117,25 @@ export class CustomScrollbar {
 
     scrollbarTrack.appendChild(scrollbarThumb);
 
-    // Ensure container is positioned relatively for scrollbar positioning
-    const parent = container.parentElement;
-    if (parent) {
-      parent.style.position = 'relative';
-      parent.appendChild(scrollbarTrack);
-    } else {
+    // CRITICAL FIX: Check if container is inside a modal
+    // If so, only set container's position to relative, NOT the parent
+    // This prevents breaking the modal's position:fixed behavior
+    const isInModal = container.closest('.modal') !== null;
+    
+    if (isInModal) {
+      // For modal content, set position relative only on container itself
       container.style.position = 'relative';
       container.appendChild(scrollbarTrack);
+    } else {
+      // For non-modal elements, apply to parent for scrollbar positioning
+      const parent = container.parentElement;
+      if (parent) {
+        parent.style.position = 'relative';
+        parent.appendChild(scrollbarTrack);
+      } else {
+        container.style.position = 'relative';
+        container.appendChild(scrollbarTrack);
+      }
     }
 
     const scrollbarData = {

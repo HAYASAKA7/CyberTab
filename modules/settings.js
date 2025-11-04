@@ -113,6 +113,10 @@ export class SettingsManager {
 
   showEditIconModal(itemId) {
     const modal = document.getElementById("editIconModal");
+    if (!modal) {
+      console.warn("editIconModal not found in DOM");
+      return;
+    }
     modal.classList.remove("hidden");
     modal.setAttribute("aria-hidden", "false");
     modal.dataset.itemId = itemId;

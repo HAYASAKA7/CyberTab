@@ -19,6 +19,7 @@
 
 .card{
   min-width:420px;
+  max-height:85vh;
   padding:28px 32px;
   border-radius:16px;
   background:linear-gradient(180deg, rgba(2,6,10,0.95), rgba(3,9,14,0.9));
@@ -27,6 +28,8 @@
     0 30px 80px rgba(0,0,0,0.8), 
     0 0 40px rgba(0,240,255,0.06) inset;
   color:#e6f6ff;
+  overflow-y:auto;
+  overflow-x:hidden;
 }
 
 .settings-card{
