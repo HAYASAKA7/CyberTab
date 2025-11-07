@@ -214,5 +214,17 @@
   },
   "resyncBookmarksMenuItem": { 
     "message": "ブックマークを再同期"
+  },
+  "customMouseLabel": {
+    "message": "カスタムマウスとエフェクト"
+  },
+  "customMouseDescription": {
+    "message": "アニメーションカーソルとマウストレイルエフェクトを有効にします"
+  },
+  "customMouseTrailLabel": {
+    "message": "マウストレイルエフェクト"
+  },
+  "customMouseTrailDescription": {
+    "message": "カーソルに従うネオントレイルを有効にします"
   }
 }

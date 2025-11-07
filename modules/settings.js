@@ -17,6 +17,8 @@ export class SettingsManager {
     const importFile = document.getElementById("importFile");
     const languageSelect = document.getElementById("languageSelect");
     const bookmarkSyncInput = document.getElementById("bookmarkSyncCount");
+    const customMouseCheckbox = document.getElementById("customMouseEnabled");
+    const customMouseTrailCheckbox = document.getElementById("customMouseTrailEnabled");
 
     // Set initial values
     if (languageSelect) {
@@ -25,6 +27,14 @@ export class SettingsManager {
 
     if (bookmarkSyncInput) {
       bookmarkSyncInput.value = this.storageManager.bookmarkSyncCount;
+    }
+
+    if (customMouseCheckbox) {
+      customMouseCheckbox.checked = this.storageManager.customMouseEnabled;
+    }
+
+    if (customMouseTrailCheckbox) {
+      customMouseTrailCheckbox.checked = this.storageManager.customMouseTrailEnabled;
     }
 
     // Settings button
@@ -63,6 +73,24 @@ export class SettingsManager {
           }
           if (this.callbacks.onAutoAlign) {
             this.callbacks.onAutoAlign();
+          }
+        }
+
+        // Update custom mouse setting
+        if (customMouseCheckbox) {
+          this.storageManager.customMouseEnabled = customMouseCheckbox.checked;
+          this.storageManager.saveCustomMouseEnabled();
+          if (this.callbacks.onCustomMouseChange) {
+            this.callbacks.onCustomMouseChange();
+          }
+        }
+
+        // Update custom mouse trail setting
+        if (customMouseTrailCheckbox) {
+          this.storageManager.customMouseTrailEnabled = customMouseTrailCheckbox.checked;
+          this.storageManager.saveCustomMouseTrailEnabled();
+          if (this.callbacks.onCustomMouseTrailChange) {
+            this.callbacks.onCustomMouseTrailChange();
           }
         }
 

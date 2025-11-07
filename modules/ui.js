@@ -13,6 +13,7 @@ export class UIManager {
     this.setupKeyboardShortcuts();
     this.setupContextMenus();
     this.setupTweetDetailModal();
+    this.setupCustomMouseEffects();
   }
 
   setupAddModal() {
@@ -154,52 +155,6 @@ export class UIManager {
         }
       });
 
-      // Neon mouse trail
-      let lastX = 0, lastY = 0;
-      (function neonMouseTrail() {
-        const colors = ['#ff2d95', '#ff2d95'];
-        const trailLength = 32;
-        const trail = [];
-
-        function createDot(x, y, i) {
-          const dot = document.createElement('div');
-          dot.className = 'neon-mouse-dot';
-          dot.style.left = x + 'px';
-          dot.style.top = y + 'px';
-          dot.style.background = `linear-gradient(135deg, ${colors[i%2]}, ${colors[(i+1)%2]})`;
-          dot.style.opacity = i === 0 ? '0' : ((1 - i / trailLength) * 0.35);
-          document.body.appendChild(dot);
-          return dot;
-        }
-
-        function updateCursorPos(e) {
-          lastX = e.clientX;
-          lastY = e.clientY;
-          const cursor = document.querySelector('.cyber-cursor-anim');
-          if (cursor) {
-            cursor.style.left = (e.clientX - 16) + 'px';
-            cursor.style.top = (e.clientY - 16) + 'px';
-          }
-        }
-        document.addEventListener('mousemove', updateCursorPos);
-        document.addEventListener('pointermove', updateCursorPos);
-
-        function animate() {
-          trail.unshift({ x: lastX, y: lastY });
-          if (trail.length > trailLength) {
-            const old = trail.pop();
-            if (old.el) old.el.remove();
-          }
-          trail.forEach((p, i) => {
-            if (!p.el) p.el = createDot(p.x, p.y, i);
-            p.el.style.left = p.x + 'px';
-            p.el.style.top = p.y + 'px';
-            p.el.style.opacity = (1 - i / trailLength) * 0.35;
-          });
-          requestAnimationFrame(animate);
-        }
-        animate();
-      })();
       searchInput.addEventListener("blur", () => {
         setTimeout(() => {
           if (suggestionsBox) {
@@ -415,6 +370,59 @@ export class UIManager {
     modal.classList.add("hidden");
     modal.setAttribute("aria-hidden", "true");
   }
+
+  setupCustomMouseEffects() {
+    // Hide/show mouse effects based on storage setting
+    this.updateMouseEffectsVisibility();
+  }
+
+  updateMouseEffectsVisibility() {
+    const isEnabled = this.managers.storage.customMouseEnabled;
+    const isTrailEnabled = this.managers.storage.customMouseTrailEnabled;
+    const cursor = document.querySelector('.cyber-cursor-anim');
+    const trail = document.querySelectorAll('.neon-mouse-dot');
+    const body = document.body;
+    
+    // If both are disabled, show system cursor
+    if (!isEnabled && !isTrailEnabled) {
+      if (cursor && cursor.parentNode) {
+        cursor.remove();
+      }
+      // Remove the class that hides system cursor
+      body.classList.remove('custom-cursor-enabled');
+      if (window.setTrailVisible) {
+        window.setTrailVisible(false);
+      }
+      trail.forEach(dot => {
+        dot.style.display = 'none';
+      });
+    } else {
+      // Control custom cursor visibility
+      if (isEnabled) {
+        if (cursor && !cursor.parentNode) {
+          document.body.appendChild(cursor);
+        }
+        // Add class to hide system cursor
+        body.classList.add('custom-cursor-enabled');
+      } else {
+        if (cursor && cursor.parentNode) {
+          cursor.remove();
+        }
+        // Remove class to show system cursor
+        body.classList.remove('custom-cursor-enabled');
+      }
+      
+      // Control trail visibility
+      if (window.setTrailVisible) {
+        window.setTrailVisible(isTrailEnabled);
+      }
+      
+      // Update trail dots display
+      trail.forEach(dot => {
+        dot.style.display = isTrailEnabled ? '' : 'none';
+      });
+    }
+  }
 }
 
 // Neon mouse trail
@@ -426,6 +434,7 @@ let lastCursorY = window.innerHeight / 2;
   const trailLength = 32;
   const trail = [];
   let trailActive = false;
+  
   function createDot(x, y, i) {
     const dot = document.createElement('div');
     dot.className = 'neon-mouse-dot';
@@ -433,7 +442,7 @@ let lastCursorY = window.innerHeight / 2;
     dot.style.top = y + 'px';
     dot.style.background = `linear-gradient(135deg, ${colors[i%2]}, ${colors[(i+1)%2]})`;
     dot.style.opacity = i === 0 ? '0' : ((1 - i / trailLength) * 0.35);
-    dot.style.display = trailActive ? '' : 'none';
+    dot.style.display = 'none';
     document.body.appendChild(dot);
     return dot;
   }
@@ -485,13 +494,43 @@ let lastCursorY = window.innerHeight / 2;
     lastY = e.clientY;
   }, true);
 
+  // Get storage manager reference from window (set after managers are initialized)
+  const shouldShowTrail = () => {
+    if (!window.storageManagerRef) return false;
+    return window.storageManagerRef.customMouseTrailEnabled;
+  };
+
+  // Check initial trail setting after storage is loaded
+  const checkInitialTrailSetting = () => {
+    if (shouldShowTrail()) {
+      setTrailVisible(true);
+    } else {
+      setTrailVisible(false);
+    }
+  };
+  
+  // Poll for storage manager to be ready and set initial state
+  const pollInterval = setInterval(() => {
+    if (window.storageManagerRef) {
+      clearInterval(pollInterval);
+      checkInitialTrailSetting();
+    }
+  }, 50);
+
   window.addEventListener('mouseenter', () => {
-    setTrailVisible(true);
+    if (shouldShowTrail()) {
+      setTrailVisible(true);
+    }
   });
   window.addEventListener('mouseleave', () => {
-    setTrailVisible(false);
-    resetTrail();
+    if (shouldShowTrail()) {
+      setTrailVisible(false);
+      resetTrail();
+    }
   });
+
+  // Expose setTrailVisible globally for external control
+  window.setTrailVisible = setTrailVisible;
 })();
 
 (function enableCursorFollowDuringDrag() {

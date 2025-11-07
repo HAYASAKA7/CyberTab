@@ -132,21 +132,22 @@
 /* Dynamic cursor */
 *,
 *::before,
-*::after,
-html,
-body,
-div,
-span,
-a,
-button,
-input,
-textarea,
-select {
+/* Only hide system cursor when custom effects are enabled */
+body.custom-cursor-enabled *::after,
+body.custom-cursor-enabled html,
+body.custom-cursor-enabled,
+body.custom-cursor-enabled div,
+body.custom-cursor-enabled span,
+body.custom-cursor-enabled a,
+body.custom-cursor-enabled button,
+body.custom-cursor-enabled input,
+body.custom-cursor-enabled textarea,
+body.custom-cursor-enabled select {
   cursor: none !important;
 }
 
-/* Override any inline cursor styles */
-*[style*="cursor"] {
+/* Override any inline cursor styles when custom cursor is enabled */
+body.custom-cursor-enabled *[style*="cursor"] {
   cursor: none !important;
 }
 

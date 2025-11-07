@@ -15,6 +15,8 @@ export const BACKGROUND_KEY = "cyber_tab_background_image";
 export const LOCAL_ICONS_KEY = "cyber_tab_local_icons";
 export const QUICK_LINKS_KEY = "cyber_tab_quick_links";
 export const QUICK_LINKS_TWEETS_KEY = "cyber_tab_quick_links_tweets";
+export const CUSTOM_MOUSE_ENABLED_KEY = "cyber_tab_custom_mouse_enabled";
+export const CUSTOM_MOUSE_TRAIL_ENABLED_KEY = "cyber_tab_custom_mouse_trail_enabled";
 
 // Right sidebar settings
 export const RIGHT_SIDEBAR_TRIGGER_ZONE = 20; // pixels from right edge to trigger

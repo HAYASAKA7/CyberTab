@@ -94,7 +94,9 @@ const settingsManager = new SettingsManager(storageManager, i18nManager, {
   onAutoAlign: () => tileManager.autoAlignTiles(),
   onApplyBackground: () => backgroundManager.applyPendingBackground(),
   onUpdateEngineUI: () => searchManager.updateEngineUI(),
-  onLocalizePage: () => i18nManager.localizePage()
+  onLocalizePage: () => i18nManager.localizePage(),
+  onCustomMouseChange: () => uiManager ? uiManager.updateMouseEffectsVisibility() : null,
+  onCustomMouseTrailChange: () => uiManager ? uiManager.updateMouseEffectsVisibility() : null
 });
 
 // UI manager with all managers
@@ -121,6 +123,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Load saved data
   await storageManager.load();
+  
+  // Expose storage manager to window for trail visibility check
+  window.storageManagerRef = storageManager;
   
   // Set language in i18n manager
   i18nManager.setLanguage(storageManager.currentLanguage);

@@ -214,5 +214,17 @@
   },
   "resyncBookmarksMenuItem": { 
     "message": "ReSync Bookmarks"
+  },
+  "customMouseLabel": {
+    "message": "Custom Mouse & Effects"
+  },
+  "customMouseDescription": {
+    "message": "Enable animated cursor and mouse trail effects"
+  },
+  "customMouseTrailLabel": {
+    "message": "Mouse Trail Effect"
+  },
+  "customMouseTrailDescription": {
+    "message": "Enable neon trail following your cursor"
   }
 }

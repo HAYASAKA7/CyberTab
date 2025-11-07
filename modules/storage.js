@@ -9,7 +9,9 @@ import {
   BACKGROUND_KEY,
   LOCAL_ICONS_KEY,
   QUICK_LINKS_KEY,
-  QUICK_LINKS_TWEETS_KEY
+  QUICK_LINKS_TWEETS_KEY,
+  CUSTOM_MOUSE_ENABLED_KEY,
+  CUSTOM_MOUSE_TRAIL_ENABLED_KEY
 } from './constants.js';
 
 export class StorageManager {
@@ -22,6 +24,8 @@ export class StorageManager {
     this.backgroundImage = "";
     this.quickLinks = [];
     this.quickLinksTweets = {};
+    this.customMouseEnabled = true;
+    this.customMouseTrailEnabled = false;
   }
 
   save() {
@@ -59,6 +63,14 @@ export class StorageManager {
 
   saveBookmarkSyncCount() {
     chrome.storage.sync.set({ [BOOKMARK_SYNC_COUNT_KEY]: this.bookmarkSyncCount });
+  }
+
+  saveCustomMouseEnabled() {
+    chrome.storage.sync.set({ [CUSTOM_MOUSE_ENABLED_KEY]: this.customMouseEnabled });
+  }
+
+  saveCustomMouseTrailEnabled() {
+    chrome.storage.sync.set({ [CUSTOM_MOUSE_TRAIL_ENABLED_KEY]: this.customMouseTrailEnabled });
   }
 
   saveBackground() {
@@ -105,7 +117,7 @@ export class StorageManager {
     return new Promise(async resolve => {
       chrome.storage.sync.get([
         STORAGE_KEY, ENGINE_KEY, LANGUAGE_KEY, AUTO_ALIGN_KEY, 
-        BOOKMARK_SYNC_COUNT_KEY, BACKGROUND_KEY, QUICK_LINKS_KEY
+        BOOKMARK_SYNC_COUNT_KEY, BACKGROUND_KEY, QUICK_LINKS_KEY, CUSTOM_MOUSE_ENABLED_KEY, CUSTOM_MOUSE_TRAIL_ENABLED_KEY
       ], async res => {
         this.items = res[STORAGE_KEY] || this.getDefaultItems();
         this.currentEngine = res[ENGINE_KEY] || "google";
@@ -114,6 +126,8 @@ export class StorageManager {
         this.bookmarkSyncCount = (typeof res[BOOKMARK_SYNC_COUNT_KEY] !== "undefined") ? res[BOOKMARK_SYNC_COUNT_KEY] : 5;
         this.backgroundImage = res[BACKGROUND_KEY] || "";
         this.quickLinks = res[QUICK_LINKS_KEY] || [];
+        this.customMouseEnabled = (typeof res[CUSTOM_MOUSE_ENABLED_KEY] !== "undefined") ? res[CUSTOM_MOUSE_ENABLED_KEY] : true;
+        this.customMouseTrailEnabled = (typeof res[CUSTOM_MOUSE_TRAIL_ENABLED_KEY] !== "undefined") ? res[CUSTOM_MOUSE_TRAIL_ENABLED_KEY] : false;
 
         chrome.storage.local.get([LOCAL_ICONS_KEY, BACKGROUND_KEY], localRes => {
           const localIcons = localRes[LOCAL_ICONS_KEY] || {};
@@ -171,7 +185,9 @@ export class StorageManager {
     const data = {
       items: this.items,
       currentEngine: this.currentEngine,
-      currentLanguage: this.currentLanguage
+      currentLanguage: this.currentLanguage,
+      customMouseEnabled: this.customMouseEnabled,
+      customMouseTrailEnabled: this.customMouseTrailEnabled
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -193,9 +209,13 @@ export class StorageManager {
         if (data.items) this.items = data.items;
         if (data.currentEngine) this.currentEngine = data.currentEngine;
         if (data.currentLanguage) this.currentLanguage = data.currentLanguage;
+        if (typeof data.customMouseEnabled !== 'undefined') this.customMouseEnabled = data.customMouseEnabled;
+        if (typeof data.customMouseTrailEnabled !== 'undefined') this.customMouseTrailEnabled = data.customMouseTrailEnabled;
         this.save();
         this.saveEngine();
         this.saveLanguage();
+        this.saveCustomMouseEnabled();
+        this.saveCustomMouseTrailEnabled();
         
         if (callbacks) {
           if (callbacks.onRenderAll) callbacks.onRenderAll();

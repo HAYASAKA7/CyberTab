@@ -214,5 +214,17 @@
   },
   "resyncBookmarksMenuItem": { 
     "message": "重新同步收藏夹"
+  },
+  "customMouseLabel": {
+    "message": "自定义鼠标和效果"
+  },
+  "customMouseDescription": {
+    "message": "启用动画光标和鼠标轨迹效果"
+  },
+  "customMouseTrailLabel": {
+    "message": "鼠标轨迹效果"
+  },
+  "customMouseTrailDescription": {
+    "message": "启用跟随光标的霓虹轨迹"
   }
 }
