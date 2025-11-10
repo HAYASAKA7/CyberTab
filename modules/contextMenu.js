@@ -143,6 +143,10 @@ export class ContextMenuManager {
         this.hideContextMenu();
       });
     }
+    // Add click outside to close for board context menu
+    setTimeout(() => {
+      document.addEventListener("click", () => this.hideContextMenu(), { once: true });
+    }, 10);
   }
 
   hideContextMenu() {
