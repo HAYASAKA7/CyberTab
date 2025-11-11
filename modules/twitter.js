@@ -578,11 +578,25 @@ export class TwitterManager {
       
       // Restore YouTube links from piped.video
       if (url.hostname === 'piped.video') {
+        // Extract video ID from pathname (e.g., /d2Qv6ukBWqw)
+        const pathParts = url.pathname.slice(1).split('/');
+        const firstPart = pathParts[0];
+        // Video IDs are typically 11 characters alphanumeric, channel paths contain "/" or multiple segments
+        if (firstPart && firstPart.length === 11 && /^[a-zA-Z0-9_-]+$/.test(firstPart) && pathParts.length === 1) {
+          return `https://www.youtube.com/watch?v=${firstPart}`;
+        }
         return 'https://www.youtube.com' + url.pathname + url.search;
       }
       
       // Restore YouTube links from other Invidious instances
       if (url.hostname.includes('invidious') || url.hostname.includes('yewtu.be')) {
+        // Extract video ID from pathname (e.g., /d2Qv6ukBWqw)
+        const pathParts = url.pathname.slice(1).split('/');
+        const firstPart = pathParts[0];
+        // Video IDs are typically 11 characters alphanumeric, channel paths contain "/" or multiple segments
+        if (firstPart && firstPart.length === 11 && /^[a-zA-Z0-9_-]+$/.test(firstPart) && pathParts.length === 1) {
+          return `https://www.youtube.com/watch?v=${firstPart}`;
+        }
         return 'https://www.youtube.com' + url.pathname + url.search;
       }
       
